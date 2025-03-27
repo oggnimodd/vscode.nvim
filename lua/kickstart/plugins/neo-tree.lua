@@ -16,8 +16,13 @@ return {
   opts = {
     filesystem = {
       window = {
+        width = 20,
         mappings = {
+          -- Existing mapping
           ['\\'] = 'close_window',
+
+          -- Add this line to close Neo-tree with Ctrl+b when focused
+          ['<C-b>'] = 'close_window',
         },
       },
     },

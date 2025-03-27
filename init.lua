@@ -104,6 +104,8 @@ vim.opt.number = true
 --  Experiment for yourself to see if you like it!
 -- vim.opt.relativenumber = true
 
+-- vim.opt.numberwidth = 1
+
 -- Enable mouse mode, can be useful for resizing splits for example!
 vim.opt.mouse = 'a'
 
@@ -144,7 +146,7 @@ vim.opt.splitbelow = true
 -- Sets how neovim will display certain whitespace characters in the editor.
 --  See `:help 'list'`
 --  and `:help 'listchars'`
-vim.opt.list = true
+vim.opt.list = false
 vim.opt.listchars = { tab = '» ', trail = '·', nbsp = '␣' }
 
 -- Preview substitutions live, as you type!
@@ -160,6 +162,15 @@ vim.opt.scrolloff = 10
 -- instead raise a dialog asking if you wish to save the current file(s)
 -- See `:help 'confirm'`
 vim.opt.confirm = true
+
+-- ADD/MODIFY THESE LINES FOR 2-SPACE INDENTATION: --------
+vim.opt.tabstop = 2 -- Number of visual spaces per TAB.
+vim.opt.softtabstop = 2 -- Number of spaces inserted for a TAB in Insert mode.
+vim.opt.shiftwidth = 2 -- Number of spaces used for autoindenting (>> << commands).
+vim.opt.expandtab = true -- Use spaces instead of actual Tab characters.
+vim.opt.autoindent = true -- Copy indent from current line when starting a new line.
+vim.opt.smartindent = true -- Perform smart autoindenting when starting a new line.
+-- -- END OF 2-SPACE INDENTATION SETTINGS -------------------
 
 -- [[ Basic Keymaps ]]
 --  See `:help vim.keymap.set()`
@@ -202,6 +213,17 @@ vim.keymap.set('n', '<C-k>', '<C-w><C-k>', { desc = 'Move focus to the upper win
 
 -- [[ Basic Autocommands ]]
 --  See `:help lua-guide-autocommands`
+
+-- Remove 'r' and 'o' from formatoptions when a file is loaded
+-- This prevents auto-continuation of comments on new lines
+vim.api.nvim_create_autocmd('FileType', {
+  pattern = '*', -- Apply to all file types
+  callback = function()
+    -- Use vim.opt_local to set options for the current buffer only
+    vim.opt_local.formatoptions:remove { 'c', 'r', 'o' }
+  end,
+  desc = 'Disable automatic comment continuation on new line',
+})
 
 -- Highlight when yanking (copying) text
 --  Try it with `yap` in normal mode
@@ -799,6 +821,7 @@ require('lazy').setup({
           --   'rafamadriz/friendly-snippets',
           --   config = function()
           --     require('luasnip.loaders.from_vscode').lazy_load()
+          --     require('luasnip.loaders.from_vscode').lazy_load()
           --   end,
           -- },
         },
@@ -847,9 +870,9 @@ require('lazy').setup({
 
           -- If you prefer more traditional completion keymaps,
           -- you can uncomment the following lines
-          --['<CR>'] = cmp.mapping.confirm { select = true },
-          --['<Tab>'] = cmp.mapping.select_next_item(),
-          --['<S-Tab>'] = cmp.mapping.select_prev_item(),
+          ['<CR>'] = cmp.mapping.confirm { select = true },
+          ['<Tab>'] = cmp.mapping.select_next_item(),
+          ['<S-Tab>'] = cmp.mapping.select_prev_item(),
 
           -- Manually trigger a completion from nvim-cmp.
           --  Generally you don't need this, because nvim-cmp will display
@@ -903,6 +926,7 @@ require('lazy').setup({
     config = function()
       ---@diagnostic disable-next-line: missing-fields
       require('tokyonight').setup {
+        transparent = true,
         styles = {
           comments = { italic = false }, -- Disable italics in comments
         },
@@ -993,8 +1017,8 @@ require('lazy').setup({
   -- require 'kickstart.plugins.debug',
   -- require 'kickstart.plugins.indent_line',
   -- require 'kickstart.plugins.lint',
-  -- require 'kickstart.plugins.autopairs',
-  -- require 'kickstart.plugins.neo-tree',
+  require 'kickstart.plugins.autopairs',
+  require 'kickstart.plugins.neo-tree',
   -- require 'kickstart.plugins.gitsigns', -- adds gitsigns recommend keymaps
 
   -- NOTE: The import below can automatically add your own plugins, configuration, etc from `lua/custom/plugins/*.lua`
@@ -1007,6 +1031,60 @@ require('lazy').setup({
   -- Or use telescope!
   -- In normal mode type `<space>sh` then write `lazy.nvim-plugin`
   -- you can continue same window with `<space>sr` which resumes last telescope search
+
+  -- Transparent
+  {
+    'xiyaowong/transparent.nvim',
+    -- Optional: You might want this to load slightly later,
+    -- after the colorscheme and statusline are fully set up.
+    -- event = "VeryLazy",
+    config = function()
+      require('transparent').setup {
+        -- Keep extra_groups empty unless you find specific exceptions
+        extra_groups = {
+          'MiniStatuslineFilename',
+        },
+        -- Keep exclude_groups empty
+        exclude_groups = {},
+        on_clear = function() end,
+      }
+    end,
+  },
+  {
+    'numToStr/Comment.nvim',
+    dependencies = { 'JoosepAlviste/nvim-ts-context-commentstring' },
+    config = function()
+      local context_commentstring = require 'ts_context_commentstring.integrations.comment_nvim'
+
+      require('Comment').setup {
+        -- Use the required module for context
+        pre_hook = context_commentstring.create_pre_hook(),
+
+        -- Add this line to enable padding
+        padding = true,
+
+        -- Add any other Comment.nvim options here if needed
+        -- toggler = { line = 'gcc', block = 'gbc', },
+        -- opleader = { line = 'gc', block = 'gb', },
+      }
+    end,
+    -- event = "VeryLazy",
+  },
+  {
+    'supermaven-inc/supermaven-nvim',
+    config = function()
+      require('supermaven-nvim').setup {}
+    end,
+  },
+  { -- Autoclose and autorename HTML/XML/JSX tags
+    'windwp/nvim-ts-autotag',
+    config = function()
+      require('nvim-ts-autotag').setup {
+        -- defaults:
+        -- filetypes = { "html", "javascript", "typescript", "javascriptreact", "typescriptreact", "svelte", "vue", "tsx", "jsx", "rescript", "xml", "php", "markdown", "astro", "glimmer", "handlebars", "hbs" }
+      }
+    end,
+  },
 }, {
   ui = {
     -- If you are using a Nerd Font: set icons to an empty table which will use the
@@ -1028,6 +1106,9 @@ require('lazy').setup({
     },
   },
 })
+
+-- Noob mappings
+pcall(require, 'custom.mappings')
 
 -- The line beneath this is called `modeline`. See `:help modeline`
 -- vim: ts=2 sts=2 sw=2 et
