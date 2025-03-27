@@ -203,4 +203,7 @@ map('i', '<C-/>', function()
   end
 end, { desc = 'Toggle comment line (VSCode like on empty)' })
 
+-- [[ LSP Rename (F2) ]]
+map({ 'n', 'v', 'i' }, '<F2>', '<Cmd>lua vim.lsp.buf.rename()<CR>', { desc = 'Rename Symbol' })
+
 -- Add any other future custom mappings below this line
