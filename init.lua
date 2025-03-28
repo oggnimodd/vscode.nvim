@@ -716,6 +716,28 @@ require('lazy').setup({
               -- You can toggle below to ignore Lua_LS's noisy `missing-fields` warnings
               -- diagnostics = { disable = { 'missing-fields' } },
             },
+            svelte = {
+              on_attach = function(client, bufnr) -- Add bufnr for consistency
+                vim.api.nvim_create_autocmd('BufWritePost', {
+                  pattern = { '*.js', '*.ts' },
+                  callback = function(ctx)
+                    -- Good practice: Check if client is still attached and supports the method
+                    if client and client.supports_method '$/onDidChangeTsOrJsFile' then
+                      client.notify('$/onDidChangeTsOrJsFile', { uri = ctx.file })
+                    else
+                      -- Optional: Log if the notification couldn't be sent
+                      -- vim.notify("Svelte LSP client not ready or doesn't support $/onDidChangeTsOrJsFile", vim.log.levels.WARN)
+                    end
+                  end,
+                  -- It's good practice to group autocommands
+                  group = vim.api.nvim_create_augroup('SvelteTsJsNotify', { clear = true }),
+                })
+
+                -- NOTE: You DON'T need to redefine the common LSP keymaps here.
+                -- The general 'LspAttach' autocommand defined earlier in this config function
+                -- will *also* run for the Svelte LSP, setting up things like 'gd', 'gr', etc.
+              end,
+            },
           },
         },
       }
@@ -736,6 +758,7 @@ require('lazy').setup({
       local ensure_installed = vim.tbl_keys(servers or {})
       vim.list_extend(ensure_installed, {
         'stylua', -- Used to format Lua code
+        'svelte',
       })
       require('mason-tool-installer').setup { ensure_installed = ensure_installed }
 
@@ -788,8 +811,8 @@ require('lazy').setup({
       end,
       formatters_by_ft = {
         lua = { 'stylua' },
-        json = { 'biome' },
-        jsonc = { 'biome' },
+        json = { 'prettierd' },
+        jsonc = { 'prettierd' },
         svelte = { 'prettierd' },
         -- Conform can also run multiple formatters sequentially
         -- python = { "isort", "black" },
