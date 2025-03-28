@@ -68,4 +68,121 @@ vim.api.nvim_create_user_command(
 
 -- [[ END Diagnostic Copy Command ]]
 
+-- ============================================================
+-- == Command to Copy Project File Tree (JS/TS Projects) ==
+-- ============================================================
+
+--- Finds the nearest ancestor directory containing a specific marker file.
+---@param start_dir string The directory to start searching from.
+---@param marker string The filename to look for (e.g., 'package.json', '.git').
+---@return string|nil The path to the directory containing the marker, or nil if not found.
+local function find_project_root(start_dir, marker)
+  local current_dir = start_dir
+  local uv = vim.uv or vim.loop -- Use vim.uv if available (Neovim 0.10+), fallback to vim.loop
+  if not current_dir or current_dir == '' then
+    return nil -- Cannot search from an empty path
+  end
+
+  while current_dir do
+    local marker_path = current_dir .. '/' .. marker
+    local stat = uv.fs_stat(marker_path)
+
+    if stat and stat.type == 'file' then
+      return current_dir -- Found the marker file in this directory
+    end
+
+    -- Stop if we've reached the filesystem root
+    local parent_dir = vim.fn.fnamemodify(current_dir, ':h')
+    if parent_dir == current_dir or parent_dir == '' then
+      break -- Reached root or invalid path
+    end
+    current_dir = parent_dir
+  end
+
+  return nil -- Marker not found in ancestor directories
+end
+
+--- Copies a filtered file tree of the current JS/TS project to the clipboard (Quiet Version).
+local function CopyProjectTreeToClipboard_Quiet()
+  -- 1. Check if 'tree' command exists
+  if vim.fn.executable 'tree' == 0 then
+    vim.notify("Error: 'tree' command not found. Please install it.", vim.log.levels.ERROR)
+    return
+  end
+
+  -- 2. Determine starting directory (current file's dir or cwd)
+  local current_buf_path = vim.fn.expand '%:p'
+  local start_dir
+  if current_buf_path ~= '' then
+    start_dir = vim.fn.expand '%:p:h'
+  else
+    start_dir = vim.fn.getcwd()
+  end
+
+  if not start_dir or start_dir == '' then
+    vim.notify('Error: Could not determine a starting directory.', vim.log.levels.ERROR)
+    return
+  end
+
+  -- 3. Find the project root marked by 'package.json'
+  local project_root = find_project_root(start_dir, 'package.json')
+
+  if not project_root then
+    vim.notify('Error: Could not find project root (package.json).', vim.log.levels.ERROR)
+    return
+  end
+
+  -- 4. Define ignore patterns for 'tree -I'
+  local ignore_pattern = table.concat({
+    'node_modules',
+    '.git',
+    'dist',
+    'build',
+    'out',
+    '.cache',
+    'coverage',
+    '.DS_Store',
+    '*.log',
+    '.env*',
+    '.vscode',
+    '.idea',
+    -- Add any other patterns you want to ignore
+  }, '|')
+
+  -- 5. Construct and execute the 'tree' command
+  local command_list = { 'tree', '-I', ignore_pattern, project_root }
+  -- REMOVED: vim.notify('Running: ' .. table.concat(command_list, ' '), vim.log.levels.INFO)
+
+  local tree_output = vim.trim(vim.fn.system(command_list))
+
+  -- 6. Check for errors during execution
+  if vim.v.shell_error ~= 0 then
+    -- Display the actual error output from the command if available and not empty
+    local error_message = "Error running 'tree' command. Exit code: " .. vim.v.shell_error
+    if tree_output and tree_output ~= '' then
+      error_message = error_message .. '\nOutput:\n' .. tree_output
+    end
+    vim.notify(error_message, vim.log.levels.ERROR)
+    return
+  end
+
+  -- REMOVED: Warning for empty output - just copy the (potentially empty) string
+
+  -- 7. Copy the output to the clipboard
+  vim.fn.setreg('+', tree_output)
+  vim.notify 'Project file tree copied to clipboard.' -- Simplified success message
+end
+
+-- Create the user command :CopyProjectTree
+vim.api.nvim_create_user_command(
+  'CopyProjectTree',
+  CopyProjectTreeToClipboard_Quiet, -- Use the quiet version of the function
+  {
+    desc = 'Find JS/TS project root and copy filtered file tree to clipboard (Quiet)',
+    nargs = 0, -- This command takes no arguments
+  }
+)
+
+-- [[ END Project Tree Command ]]
+
 -- Add other custom commands below
