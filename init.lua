@@ -862,7 +862,10 @@ require('lazy').setup({
           ['<C-e>'] = cmp.mapping.abort(),
 
           -- Accept selected completion using Enter
-          ['<CR>'] = cmp.mapping.confirm { select = true },
+          ['<CR>'] = cmp.mapping.confirm {
+            behavior = cmp.ConfirmBehavior.Replace,
+            select = true,
+          },
 
           -- Manually trigger completion
           ['<C-Space>'] = cmp.mapping.complete {},
