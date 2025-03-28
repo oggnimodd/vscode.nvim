@@ -716,30 +716,9 @@ require('lazy').setup({
               -- You can toggle below to ignore Lua_LS's noisy `missing-fields` warnings
               -- diagnostics = { disable = { 'missing-fields' } },
             },
-            svelte = {
-              on_attach = function(client, bufnr) -- Add bufnr for consistency
-                vim.api.nvim_create_autocmd('BufWritePost', {
-                  pattern = { '*.js', '*.ts' },
-                  callback = function(ctx)
-                    -- Good practice: Check if client is still attached and supports the method
-                    if client and client.supports_method '$/onDidChangeTsOrJsFile' then
-                      client.notify('$/onDidChangeTsOrJsFile', { uri = ctx.file })
-                    else
-                      -- Optional: Log if the notification couldn't be sent
-                      -- vim.notify("Svelte LSP client not ready or doesn't support $/onDidChangeTsOrJsFile", vim.log.levels.WARN)
-                    end
-                  end,
-                  -- It's good practice to group autocommands
-                  group = vim.api.nvim_create_augroup('SvelteTsJsNotify', { clear = true }),
-                })
-
-                -- NOTE: You DON'T need to redefine the common LSP keymaps here.
-                -- The general 'LspAttach' autocommand defined earlier in this config function
-                -- will *also* run for the Svelte LSP, setting up things like 'gd', 'gr', etc.
-              end,
-            },
           },
         },
+        svelte = {},
       }
 
       -- Ensure the servers and tools above are installed
@@ -772,6 +751,19 @@ require('lazy').setup({
             -- by the server configuration above. Useful when disabling
             -- certain features of an LSP (for example, turning off formatting for ts_ls)
             server.capabilities = vim.tbl_deep_extend('force', {}, capabilities, server.capabilities or {})
+            -- <<< --- START OF ADDED/MODIFIED CODE --- >>>
+            -- SPECIFIC FIX FOR SVELTE ON LINUX (Neovim 0.10.x)
+            if server_name == 'svelte' then
+              -- Force Svelte LS to use its internal file watcher (chokidar)
+              -- by telling it Neovim doesn't support dynamic watched file registration.
+              server.capabilities = vim.tbl_deep_extend('force', server.capabilities, {
+                workspace = {
+                  didChangeWatchedFiles = false,
+                },
+              })
+              vim.notify('Applied Svelte Linux watcher capability override', vim.log.levels.INFO) -- Optional notification
+            end
+            -- <<< --- END OF ADDED/MODIFIED CODE --- >>>
             require('lspconfig')[server_name].setup(server)
           end,
         },
