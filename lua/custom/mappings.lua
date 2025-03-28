@@ -236,4 +236,9 @@ map('n', '<leader>xi', 'ci', { desc = '[X]change [I]nside object' })
 -- Example Usage: <leader>xa" -> changes around double quotes (quotes + content)
 map('n', '<leader>xa', 'ca', { desc = '[X]change [A]round object' })
 
+-- Map <leader>wc to force-close the current window
+map('n', '<leader>wc', '<Cmd>close!<CR>', { desc = '[W]indow [C]lose (Force)' })
+-- Or maybe <leader>wq
+-- map('n', '<leader>wq', '<Cmd>close!<CR>', { desc = '[W]indow [Q]uit (Force)' })
+
 -- Add any other future custom mappings below this line
