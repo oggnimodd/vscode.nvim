@@ -52,9 +52,17 @@ map('v', '<A-k>', ":move '<-2<CR>gv=gv", { desc = 'Move selection up' }) -- Corr
 map('v', '<A-up>', ":move '<-2<CR>gv=gv", { desc = 'Move selection up' }) -- Corrected range
 
 -- Insert Line Below (Ctrl+Enter)
-map('i', '<C-Enter>', '<C-o>o', { desc = 'Insert line below' })
-map('n', '<C-Enter>', 'o<Esc>', { desc = 'Insert line below (stay normal)' })
-map('v', '<C-Enter>', '<Esc>o', { desc = 'Insert line below (exit visual)' })
+-- Normal Mode: Use 'o' command
+map('i', '<C-Enter>', '<C-o>o', { desc = '[VSCode] Insert line below' })
+-- CORRECTED THIS LINE: Remove the <Esc> to stay in Insert mode
+map('n', '<C-Enter>', 'o', { desc = '[VSCode] Insert line below' })
+map('v', '<C-Enter>', '<Esc>o', { desc = '[VSCode] Insert line below (exit visual)' })
+
+-- Normal Mode: Use 'O' command
+-- Insert Line Above using Ctrl+K (Alternative to Ctrl+Shift+Enter)
+map('n', '<C-k>', 'O', { desc = '[VSCode Alt] Insert line above (Ctrl+k)' })
+map('i', '<C-k>', '<C-o>O', { desc = '[VSCode Alt] Insert line above (Ctrl+k)' })
+map('v', '<C-k>', '<Esc>O', { desc = '[VSCode Alt] Insert line above (Ctrl+k)' })
 
 -- Delete Line (Ctrl+Shift+K) - without yanking
 map({ 'n', 'v' }, '<C-S-k>', '"_dd', { desc = 'Delete line (no yank)' })
@@ -205,5 +213,8 @@ end, { desc = 'Toggle comment line (VSCode like on empty)' })
 
 -- [[ LSP Rename (F2) ]]
 map({ 'n', 'v', 'i' }, '<F2>', '<Cmd>lua vim.lsp.buf.rename()<CR>', { desc = 'Rename Symbol' })
+
+-- Delete word backwards in command line mode (like Ctrl+W)
+map('c', '<C-BS>', '<C-w>', { desc = 'Delete word backwards' })
 
 -- Add any other future custom mappings below this line
