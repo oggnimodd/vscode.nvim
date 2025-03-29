@@ -241,4 +241,10 @@ map('n', '<leader>wc', '<Cmd>close!<CR>', { desc = '[W]indow [C]lose (Force)' })
 -- Or maybe <leader>wq
 -- map('n', '<leader>wq', '<Cmd>close!<CR>', { desc = '[W]indow [Q]uit (Force)' })
 
+-- Rename surrounding HTML/JSX tag (requires nvim-ts-autotag)
+-- <leader>hr -> [H]TML [R]ename Tag
+map('n', '<leader>hr', function()
+  require('custom.black-magics.tag-renamer').rename_html_tag_prompt()
+end, { desc = '[H]TML [R]ename Tag (Prompt)' }) -- NEW version
+
 -- Add any other future custom mappings below this line
