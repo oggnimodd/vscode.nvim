@@ -1034,6 +1034,12 @@ require('lazy').setup({
   },
 })
 
+vim.api.nvim_create_autocmd('VimEnter', {
+  callback = function()
+    require('neo-tree.command').execute { action = 'show' }
+  end,
+})
+
 -- Noob mappings
 pcall(require, 'custom.mappings')
 pcall(require, 'custom.commands')
