@@ -217,15 +217,6 @@ map({ 'n', 'v', 'i' }, '<F2>', '<Cmd>lua vim.lsp.buf.rename()<CR>', { desc = 'Re
 -- Delete word backwards in command line mode (like Ctrl+W)
 map('c', '<C-BS>', '<C-w>', { desc = 'Delete word backwards' })
 
--- Jump List Navigation (Like Alt+Left/Right in VS Code for Back/Forward)
-map({ 'n', 'i', 'v' }, '<A-Left>', '<C-O>', { desc = 'Go Back (Jump List)' })
-
-map({ 'n', 'i', 'v' }, '<A-Right>', '<C-I>', { desc = 'Go Forward (Jump List)' })
-
-map({ 'n', 'v', 'i' }, '<C-PageDown>', '<Cmd>bnext<CR>', { desc = 'Next Buffer (Tab)' })
-
-map({ 'n', 'v', 'i' }, '<C-PageUp>', '<Cmd>bprevious<CR>', { desc = 'Previous Buffer (Tab)' })
-
 -- Maps <leader>xi to wait for a text object character (e.g., w, ", (, {, etc.)
 -- Example Usage: <leader>xiw -> changes inside word
 -- Example Usage: <leader>xi" -> changes inside double quotes

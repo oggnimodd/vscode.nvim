@@ -1156,12 +1156,17 @@ require('lazy').setup({
     init = function()
       vim.g.barbar_auto_setup = false
     end,
-    opts = {
-      -- lazy.nvim will automatically call setup for you. put your options here, anything missing will use the default:
-      -- animation = true,
-      -- insert_at_start = true,
-      -- …etc.
-    },
+    config = function()
+      require('barbar').setup()
+      local map = vim.keymap.set
+      local opts_noremap = { noremap = true, silent = true }
+      -- Browser like
+      -- Some terminals like kitty will intercept ctrl-tab and ctrl-shift-tab
+      map({ 'n', 'v' }, '<C-Tab>', ':BufferNext<CR>', opts_noremap)
+      map({ 'n', 'v' }, '<C-S-Tab>', ':BufferPrevious<CR>', opts_noremap)
+      map('n', '<Leader>q', ':BufferClose<CR>', opts_noremap)
+    end,
+
     version = '^1.0.0', -- optional: only update when a new 1.x version is released
   },
   {
