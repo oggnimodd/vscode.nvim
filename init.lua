@@ -903,8 +903,10 @@ require('lazy').setup({
     dependencies = {
       'nvim-treesitter/nvim-treesitter-textobjects',
     },
-    opts = {
-      ensure_installed = {
+    config = function()
+      -- Default Treesitter configurations options
+      -- Keep the parts you want from the original Kickstart opts:
+      local ensure_installed = {
         'bash',
         'c',
         'diff',
@@ -922,110 +924,136 @@ require('lazy').setup({
         'json',
         'tsx',
         'svelte',
-      },
-      -- Autoinstall languages that are not installed
-      auto_install = true,
-      highlight = {
+        -- Add any other languages you frequently use
+      }
+      local auto_install = true
+      local highlight = {
         enable = true,
-        -- Some languages depend on vim's regex highlighting system (such as Ruby) for indent rules.
-        --  If you are experiencing weird indenting issues, add the language to
-        --  the list of additional_vim_regex_highlighting and disabled languages for indent.
-        additional_vim_regex_highlighting = { 'ruby' },
-      },
-      indent = { enable = true, disable = { 'ruby' } },
-      textobjects = {
-        -- SELECT Keymaps
+        additional_vim_regex_highlighting = { 'ruby' }, -- Keep if needed
+      }
+      local indent = { enable = true, disable = { 'ruby' } } -- Keep if needed
+
+      -- Now, add your specific textobjects configuration:
+      local textobjects = {
         select = {
           enable = true,
           lookahead = true, -- Automatically jump forward to textobj
           keymaps = {
-            -- Functions / Methods
-            ['af'] = '@function.outer',
-            ['if'] = '@function.inner',
-            -- Classes
-            ['ac'] = '@class.outer',
-            ['ic'] = '@class.inner',
-            -- Parameters / Arguments
-            ['aa'] = '@parameter.outer',
-            ['ia'] = '@parameter.inner',
-            -- Conditionals (if, switch, etc.)
-            ['ai'] = '@conditional.outer',
-            ['ii'] = '@conditional.inner',
-            -- Loops (for, while, etc.)
-            ['al'] = '@loop.outer',
-            ['il'] = '@loop.inner',
-            -- Blocks (generic code block)
-            ['ak'] = '@block.outer', -- Note: Using 'k' for block
-            ['ik'] = '@block.inner', -- Note: Using 'k' for block
-            -- Statements (often line(s) of code)
-            ['is'] = '@statement.inner', -- Less common, might select only part of the statement
-            ['as'] = '@statement.outer', -- Often similar to line selection for single-line statements
-            -- Comments
-            ['ad'] = '@comment.outer', -- Note: Using 'd' for comment ('c' conflicts with class)
-            -- Function Calls
-            ['am'] = '@call.outer', -- Note: Using 'm' for method/call
-            ['im'] = '@call.inner', -- Note: Using 'm' for method/call
+            -- Your custom keymaps here:
+            ['a='] = { query = '@assignment.outer', desc = 'Select outer part of an assignment' },
+            ['i='] = { query = '@assignment.inner', desc = 'Select inner part of an assignment' },
+            ['l='] = { query = '@assignment.lhs', desc = 'Select left hand side of an assignment' },
+            ['r='] = { query = '@assignment.rhs', desc = 'Select right hand side of an assignment' },
+            ['aa'] = { query = '@parameter.outer', desc = 'Select outer part of a parameter/argument' },
+            ['ia'] = { query = '@parameter.inner', desc = 'Select inner part of a parameter/argument' },
+            ['ai'] = { query = '@conditional.outer', desc = 'Select outer part of a conditional' },
+            ['ii'] = { query = '@conditional.inner', desc = 'Select inner part of a conditional' },
+            ['al'] = { query = '@loop.outer', desc = 'Select outer part of a loop' },
+            ['il'] = { query = '@loop.inner', desc = 'Select inner part of a loop' },
+            ['af'] = { query = '@call.outer', desc = 'Select outer part of a function call' },
+            ['if'] = { query = '@call.inner', desc = 'Select inner part of a function call' },
+            ['am'] = { query = '@function.outer', desc = 'Select outer part of a method/function definition' },
+            ['im'] = { query = '@function.inner', desc = 'Select inner part of a method/function definition' },
+            ['ac'] = { query = '@class.outer', desc = 'Select outer part of a class' },
+            ['ic'] = { query = '@class.inner', desc = 'Select inner part of a class' },
+            -- Include other keymaps from original Kickstart if desired, e.g.:
+            -- ['ak'] = '@block.outer', ['ik'] = '@block.inner', -- Kickstart used 'k' for block
+            -- ['as'] = '@statement.outer', ['is'] = '@statement.inner', -- Kickstart used 's' for statement
+            -- ['ad'] = '@comment.outer', -- Kickstart used 'd' for comment
           },
-          -- Define selection modes (optional but useful)
-          selection_modes = {
-            ['@parameter.outer'] = 'v', -- charwise
-            ['@function.outer'] = 'V', -- linewise
-            ['@class.outer'] = '<c-v>', -- blockwise
-            -- Add more if needed
-          },
-          include_surrounding_whitespace = true, -- Mimic Vim's 'a' behavior
+          -- You can retain these from Kickstart or remove if not needed:
+          -- selection_modes = {
+          --   ['@parameter.outer'] = 'v', -- charwise
+          --   ['@function.outer'] = 'V', -- linewise
+          --   ['@class.outer'] = '<c-v>', -- blockwise
+          -- },
+          -- include_surrounding_whitespace = true,
         },
-
-        -- MOVE Keymaps
-        move = {
-          enable = true,
-          set_jumps = true, -- Set jumps in the jumplist
-          goto_next_start = {
-            [']m'] = '@function.outer',
-            [']]'] = '@class.outer',
-          },
-          goto_next_end = {
-            [']M'] = '@function.outer',
-            [']['] = '@class.outer',
-          },
-          goto_previous_start = {
-            ['[m'] = '@function.outer',
-            ['[['] = '@class.outer',
-          },
-          goto_previous_end = {
-            ['[M'] = '@function.outer',
-            ['[]'] = '@class.outer',
-          },
-        },
-
-        -- SWAP Keymaps
         swap = {
           enable = true,
           swap_next = {
-            [')a'] = '@parameter.inner', -- Note the keymap ')a'
+            ['<leader>na'] = '@parameter.inner',
+            ['<leader>n:'] = '@property.outer',
+            ['<leader>nm'] = '@function.outer',
           },
           swap_previous = {
-            [')A'] = '@parameter.inner', -- Note the keymap ')A'
+            ['<leader>pa'] = '@parameter.inner',
+            ['<leader>p:'] = '@property.outer',
+            ['<leader>pm'] = '@function.outer',
           },
         },
+        move = {
+          enable = true,
+          set_jumps = true, -- whether to set jumps in the jumplist
+          goto_next_start = {
+            [']f'] = { query = '@call.outer', desc = 'Next function call start' },
+            [']m'] = { query = '@function.outer', desc = 'Next method/function def start' },
+            [']c'] = { query = '@class.outer', desc = 'Next class start' },
+            [']i'] = { query = '@conditional.outer', desc = 'Next conditional start' },
+            [']l'] = { query = '@loop.outer', desc = 'Next loop start' },
+            [']s'] = { query = '@scope', query_group = 'locals', desc = 'Next scope' },
+            [']z'] = { query = '@fold', query_group = 'folds', desc = 'Next fold' },
+            -- Add back Kickstart default if desired:
+            -- [']]'] = '@class.outer', -- Kickstart default
+          },
+          goto_next_end = {
+            [']F'] = { query = '@call.outer', desc = 'Next function call end' },
+            [']M'] = { query = '@function.outer', desc = 'Next method/function def end' },
+            [']C'] = { query = '@class.outer', desc = 'Next class end' },
+            [']I'] = { query = '@conditional.outer', desc = 'Next conditional end' },
+            [']L'] = { query = '@loop.outer', desc = 'Next loop end' },
+            -- Add back Kickstart default if desired:
+            -- [']['] = '@class.outer', -- Kickstart default
+          },
+          goto_previous_start = {
+            ['[f'] = { query = '@call.outer', desc = 'Prev function call start' },
+            ['[m'] = { query = '@function.outer', desc = 'Prev method/function def start' },
+            ['[c'] = { query = '@class.outer', desc = 'Prev class start' },
+            ['[i'] = { query = '@conditional.outer', desc = 'Prev conditional start' },
+            ['[l'] = { query = '@loop.outer', desc = 'Prev loop start' },
+            -- Add back Kickstart default if desired:
+            -- ['[['] = '@class.outer', -- Kickstart default
+          },
+          goto_previous_end = {
+            ['[F'] = { query = '@call.outer', desc = 'Prev function call end' },
+            ['[M'] = { query = '@function.outer', desc = 'Prev method/function def end' },
+            ['[C'] = { query = '@class.outer', desc = 'Prev class end' },
+            ['[I'] = { query = '@conditional.outer', desc = 'Prev conditional end' },
+            ['[L'] = { query = '@loop.outer', desc = 'Prev loop end' },
+            -- Add back Kickstart default if desired:
+            -- ['[]'] = '@class.outer', -- Kickstart default
+          },
+        },
+        -- Include other textobject modules if needed, e.g., lsp_interop
+        -- lsp_interop = { enable = true, ... }
+      }
 
-        -- Optional: LSP Interop (uncomment and configure if desired)
-        -- lsp_interop = {
-        --   enable = true,
-        --   border = 'none',
-        --   peek_definition_code = {
-        --     ["<leader>df"] = "@function.outer",
-        --     ["<leader>dF"] = "@class.outer",
-        --   },
-        -- },
-      },
-      -- There are additional nvim-treesitter modules that you can use to interact
-      -- with nvim-treesitter. You should go explore a few and see what interests you:
-      --
-      --    - Incremental selection: Included, see `:help nvim-treesitter-incremental-selection-mod`
-      --    - Show your current context: https://github.com/nvim-treesitter/nvim-treesitter-context
-      --    - Treesitter + textobjects: https://github.com/nvim-treesitter/nvim-treesitter-textobjects
-    },
+      -- Call the main Treesitter setup function
+      require('nvim-treesitter.configs').setup {
+        ensure_installed = ensure_installed,
+        auto_install = auto_install,
+        highlight = highlight,
+        indent = indent,
+        textobjects = textobjects, -- Pass your detailed textobjects config here
+        -- Add other top-level Treesitter options here if needed
+        -- e.g., incremental_selection, matchup, etc.
+        -- incremental_selection = { enable = true, keymaps = { ... } },
+      }
+
+      -- Setup repeatable moves AFTER the main setup
+      local ts_repeat_move = require 'nvim-treesitter.textobjects.repeatable_move'
+      vim.keymap.set({ 'n', 'x', 'o' }, ';', ts_repeat_move.repeat_last_move)
+      vim.keymap.set({ 'n', 'x', 'o' }, ',', ts_repeat_move.repeat_last_move_opposite)
+      vim.keymap.set({ 'n', 'x', 'o' }, 'f', ts_repeat_move.builtin_f_expr)
+      vim.keymap.set({ 'n', 'x', 'o' }, 'F', ts_repeat_move.builtin_F_expr)
+      vim.keymap.set({ 'n', 'x', 'o' }, 't', ts_repeat_move.builtin_t_expr)
+      vim.keymap.set({ 'n', 'x', 'o' }, 'T', ts_repeat_move.builtin_T_expr)
+
+      -- Optional: You might have custom query files (like for a:/i:). Ensure they are in your runtime path.
+      -- Example: ~/.config/nvim/after/queries/javascript/textobjects.scm
+      -- Example: ~/.config/nvim/after/queries/typescript/textobjects.scm
+      -- No extra Lua code needed here if the files are placed correctly. Treesitter finds them automatically.
+    end,
   },
 
   -- The following comments only work if you have downloaded the kickstart repo, not just copy pasted the
