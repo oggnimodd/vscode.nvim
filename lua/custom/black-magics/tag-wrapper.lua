@@ -2,184 +2,223 @@
 
 local M = {}
 
-local ts_utils = require 'nvim-treesitter.ts_utils'
+-- Attempt to load the required modules
+local ts_utils_ok, ts_utils = pcall(require, 'nvim-treesitter.ts_utils')
+local parsers_ok, parsers = pcall(require, 'nvim-treesitter.parsers')
 local api = vim.api
-local fn = vim.fn
 
--- Helper: print_node_info (Keep for debugging if needed)
+-- Check if modules loaded and the ESSENTIAL function exists
+-- We ONLY check for get_node_at_cursor now, as get_named_node_at_cursor is missing for you
+if not ts_utils_ok or not parsers_ok or not ts_utils or not ts_utils.get_node_at_cursor then
+  local msg = 'ERROR: Tag Wrapper failed to load dependencies.\n'
+  if not ts_utils_ok then
+    msg = msg .. "- Could not load 'nvim-treesitter.ts_utils'. Is nvim-treesitter installed and updated?\n"
+  elseif not ts_utils then
+    msg = msg .. "- 'nvim-treesitter.ts_utils' loaded as nil.\n"
+  else
+    -- Only check for the one we will definitely use
+    if not ts_utils.get_node_at_cursor then
+      msg = msg .. "- Function 'get_node_at_cursor' is missing from ts_utils.\n"
+    end
+  end
+  if not parsers_ok then
+    msg = msg .. "- Could not load 'nvim-treesitter.parsers'. Is nvim-treesitter installed?\n"
+  end
+  vim.notify(msg, vim.log.levels.ERROR, { title = 'Tag Wrapper Init Error' })
+  -- Optionally print available functions for deep debugging:
+  -- if ts_utils then print("Available in ts_utils:", vim.inspect(ts_utils)) end
+  return M -- Return the empty module table so Neovim doesn't crash further
+end
+
+-- Debug helper function (optional, but useful)
 local function print_node_info(node, label)
   if not node then
     print(label .. ': nil node')
     return
   end
+  -- Use pcall for safety when accessing node properties
   local node_type_ok, node_type = pcall(node.type, node)
   local range_ok, sr, sc, er, ec = pcall(node.range, node)
-  local text_ok, text = pcall(vim.treesitter.get_node_text, node, 0)
+  local text_ok, text = pcall(vim.treesitter.get_node_text, node, 0) -- Assuming vim.treesitter is available
   local named_ok, is_named = pcall(node.is_named, node)
+
   local type_str = node_type_ok and node_type or 'ERR_TYPE'
   local range_str = range_ok and string.format('[%d:%d -> %d:%d]', sr, sc, er, ec) or 'ERR_RANGE'
-  local text_str = text_ok and (string.len(text) > 60 and (string.sub(text, 1, 57) .. '...') or text) or 'ERR_TEXT'
-  text_str = text_str:gsub('\n', '\\n'):gsub('\r', '\\r')
+  local text_str = text_ok and text or 'ERR_TEXT'
   local named_str = named_ok and tostring(is_named) or 'ERR_NAMED'
+
   print(string.format('%s: Type=%s, Range=%s, Named=%s, Text="%s"', label, type_str, range_str, named_str, text_str))
 end
 
--- Helper: get_indent_str (Consistent)
-local function get_indent_str(bufnr, level)
-  if level <= 0 then
-    return ''
-  end
-  local use_tabs = not vim.bo[bufnr].expandtab
-  local shiftwidth = vim.bo[bufnr].shiftwidth
-  if use_tabs then
-    local tabstop = vim.bo[bufnr].tabstop
-    local num_tabs = math.floor(level / tabstop)
-    local num_spaces = level % tabstop
-    return string.rep('\t', num_tabs) .. string.rep(' ', num_spaces)
-  else
-    return string.rep(' ', level * shiftwidth)
-  end
-end
-
--- Helper: get_indent_level (Consistent)
-local function get_indent_level(line_str, bufnr)
-  local indent_str = line_str:match '^%s*'
-  if not indent_str then
-    return 0
-  end
-  local tabstop = vim.bo[bufnr].tabstop
-  local level = 0
-  for i = 1, #indent_str do
-    if indent_str:sub(i, i) == '\t' then
-      level = level + tabstop - (level % tabstop)
-    else
-      level = level + 1
-    end
-  end
-  return level
-end
-
--- *** FINAL REVISION: Find IMMEDIATE Element Containing or EQUAL TO Start Node ***
-local function get_immediate_containing_element(start_node)
-  -- print("--- get_immediate_containing_element ---") -- Keep commented unless debugging
-  if not start_node then
-    return nil
-  end
-  -- print_node_info(start_node, "  Starting search from") -- Keep commented unless debugging
-
-  local current = start_node
-  local max_climbs = 15
-  local climbs = 0
-
-  while current and climbs < max_climbs do
-    climbs = climbs + 1
-    -- print_node_info(current, "  Checking current node") -- Keep commented unless debugging
-
-    local node_type_ok, node_type = pcall(current.type, current)
-    if node_type_ok then
-      if node_type == 'element' or node_type == 'jsx_element' or node_type == 'fragment' then
-        -- print("  Current node is an element type, returning current.") -- Keep commented unless debugging
+-- Find the innermost element/jsx_element/fragment node containing the given node
+local function get_closest_containing_element_node(node)
+  local current = node
+  while current do
+    -- Use pcall for safety
+    local type_ok, node_type = pcall(current.type, current)
+    if type_ok then
+      -- Add any other element-like container types your parsers might use
+      if
+        node_type == 'element'
+        or node_type == 'jsx_element'
+        or node_type == 'jsx_self_closing_element' -- Treat self-closing as an element to wrap
+        or node_type == 'fragment' -- Handle <>...</> fragments
+      then
         return current
       end
-      if node_type == 'program' or node_type == 'ERROR' or node_type == 'chunk' then
-        return nil
-      end
-      -- print("  Current node type '" .. node_type .. "' is not element, getting parent.") -- Keep commented unless debugging
     else
-      return nil
+      -- Handle error if needed, or just continue upwards
+      print 'Warning: Error getting node type during traversal'
     end
 
+    -- Use pcall for safety
     local parent_ok, parent = pcall(current.parent, current)
-    if not parent_ok or not parent then
-      return nil
+    if parent_ok and parent then
+      current = parent
+    else
+      break -- Reached root or error getting parent
     end
-    current = parent
   end
-  return nil
+  return nil -- No suitable containing element found
 end
 
--- Normal Mode Handler (Uses final helper)
-local function handle_normal_wrap_only(bufnr)
-  -- print("--- handle_normal_wrap_only ---") -- Keep commented unless debugging
-  local node_at_cursor
-  if ts_utils.get_deepest_node_at_pos then
-    local cursor_pos = api.nvim_win_get_cursor(0)
-    node_at_cursor = ts_utils.get_deepest_node_at_pos(bufnr, cursor_pos[1], cursor_pos[2])
-  else
-    vim.notify_once('ts_utils.get_deepest_node_at_pos not found, using fallback.', vim.log.levels.WARN)
-    node_at_cursor = ts_utils.get_node_at_cursor()
+function M.wrap_tag_prompt()
+  local bufnr = api.nvim_get_current_buf()
+  local parser = parsers.get_parser(bufnr) -- Assumes parsers loaded correctly due to check above
+  if not parser then
+    vim.notify('No active Treesitter parser for this buffer.', vim.log.levels.WARN)
+    return
   end
-  if not node_at_cursor then
-    node_at_cursor = ts_utils.get_named_node_at_cursor()
-  end
-  if not node_at_cursor then
+
+  -- *** CHANGE HERE: Only use get_node_at_cursor ***
+  -- Use pcall here for extra safety during the actual call
+  local node_ok, current_node = pcall(ts_utils.get_node_at_cursor)
+
+  if not node_ok or not current_node then
     vim.notify('No Treesitter node found at cursor.', vim.log.levels.WARN)
+    -- Add more debug info if needed
+    if not node_ok then
+      print 'Error calling get_node_at_cursor'
+    end
     return
   end
-  -- print_node_info(node_at_cursor, "  Node found at cursor") -- Keep commented unless debugging
 
-  local element_node = get_immediate_containing_element(node_at_cursor)
-  if not element_node then
-    vim.notify('Could not find immediate surrounding tag element to wrap.', vim.log.levels.WARN)
+  -- Find the element we want to wrap (this function walks up the tree, so starting node is okay)
+  local element_to_wrap = get_closest_containing_element_node(current_node)
+
+  if not element_to_wrap then
+    vim.notify('Could not find a containing HTML/JSX element to wrap.', vim.log.levels.WARN)
+    -- print_node_info(current_node, "Cursor Node") -- For debugging
     return
   end
-  -- print_node_info(element_node, "  Element node found to wrap") -- Keep commented unless debugging
 
-  local range_ok, sr, _, er, _ = pcall(element_node.range, element_node)
+  -- print_node_info(element_to_wrap, "Element to Wrap") -- For debugging
+
+  -- Use pcall for safety
+  local range_ok, sr, sc, er, ec = pcall(element_to_wrap.range, element_to_wrap)
   if not range_ok then
-    vim.notify('Could not get element range.', vim.log.levels.ERROR)
+    vim.notify('Failed to get range of the element to wrap.', vim.log.levels.ERROR)
     return
   end
 
-  local lines_ok, original_lines = pcall(api.nvim_buf_get_lines, bufnr, sr, er + 1, false)
-  if not lines_ok or #original_lines == 0 then
-    vim.notify('Could not get element content.', vim.log.levels.ERROR)
-    return
+  -- Determine element type for potentially different handling (e.g., fragments)
+  -- Use pcall for safety
+  local el_type_ok, element_type = pcall(element_to_wrap.type, element_to_wrap)
+  if not el_type_ok then
+    element_type = 'unknown' -- Assign a default if type cannot be read
+    print 'Warning: Could not determine element type.'
   end
 
-  local base_indent_level = get_indent_level(original_lines[1], bufnr)
-  local base_indent_str = get_indent_str(bufnr, base_indent_level)
-  local sw = vim.bo[bufnr].shiftwidth
-  local shift_indent_str = get_indent_str(bufnr, sw)
-
-  vim.ui.input({ prompt = 'Wrap element with tag: ' }, function(input_tag)
-    if not input_tag or input_tag == '' then
-      vim.notify('Wrap cancelled.', vim.log.levels.INFO)
+  vim.ui.input({ prompt = 'Wrap with tag: ', default = '' }, function(new_tag_name)
+    if not new_tag_name or new_tag_name == '' then
+      vim.notify('Tag wrapping cancelled.', vim.log.levels.INFO)
       return
     end
-    if not input_tag:match '^[a-zA-Z_:][a-zA-Z0-9%-_:.]*$' then
-      vim.notify('Invalid tag name format...', vim.log.levels.ERROR)
+    -- Basic validation for tag name
+    if not new_tag_name:match '^[a-zA-Z_:][a-zA-Z0-9%-_:.]*$' then
+      vim.notify('Invalid tag name format.', vim.log.levels.ERROR)
       return
     end
 
-    local wrapped_lines = {}
-    table.insert(wrapped_lines, base_indent_str .. '<' .. input_tag .. '>')
-    for _, line in ipairs(original_lines) do
-      table.insert(wrapped_lines, shift_indent_str .. line)
-    end
-    table.insert(wrapped_lines, base_indent_str .. '</' .. input_tag .. '>')
+    -- Use nvim_buf_call for atomicity (all changes succeed or none do)
+    local apply_success, result = pcall(api.nvim_buf_call, bufnr, function()
+      -- Get the original text content of the element
+      local original_lines = api.nvim_buf_get_text(bufnr, sr, sc, er, ec, {})
+      if not original_lines then
+        error 'Failed to get original text of the element.' -- Throw error inside pcall
+      end
+      local original_text = table.concat(original_lines, '\n')
 
-    local replace_ok, err = pcall(api.nvim_buf_set_lines, bufnr, sr, er + 1, false, wrapped_lines)
-    if replace_ok then
-      vim.notify('Wrapped element in <' .. input_tag .. '>.', vim.log.levels.INFO)
-      local format_start_line = sr + 1
-      local format_end_line = sr + #wrapped_lines
-      pcall(api.nvim_buf_call, bufnr, function()
-        vim.cmd(format_start_line .. ',' .. format_end_line .. 'normal! ==')
-      end)
+      local wrapped_text_lines
+
+      -- Handle Fragments specifically (<>...</>)
+      if element_type == 'fragment' then
+        -- Find the opening <> and closing </> ranges within the fragment
+        local open_tag_node, close_tag_node
+        -- Use pcall for safety
+        local iter_ok, iter = pcall(element_to_wrap.iter_children, element_to_wrap)
+        if iter_ok and iter then -- Check iter is not nil
+          for child in iter do
+            -- Use pcall for safety
+            local child_type_ok, child_type = pcall(child.type, child)
+            if child_type_ok then
+              -- Node types might vary slightly between parsers (e.g., '<>' vs 'open_tag')
+              if child_type == '<>' or child_type == 'open_tag' then
+                open_tag_node = child
+              elseif child_type == '</>' or child_type == 'close_tag' then
+                close_tag_node = child
+              end
+            else
+              print 'Warning: Error getting child type in fragment.'
+            end
+            if open_tag_node and close_tag_node then
+              break
+            end
+          end
+        else
+          print 'Warning: Could not iterate children of fragment.'
+        end
+
+        if open_tag_node and close_tag_node then
+          -- Use pcall for safety
+          local open_range_ok, osr, osc, oer, oec = pcall(open_tag_node.range, open_tag_node)
+          local close_range_ok, csr, csc, cer, cec = pcall(close_tag_node.range, close_tag_node)
+
+          if open_range_ok and close_range_ok then
+            -- Perform replacements in reverse order (bottom-up) to preserve line numbers
+            api.nvim_buf_set_text(bufnr, csr, csc, cer, cec, { '</' .. new_tag_name .. '>' })
+            api.nvim_buf_set_text(bufnr, osr, osc, oer, oec, { '<' .. new_tag_name .. '>' })
+            return -- IMPORTANT: Return early as we handled fragment replacement differently
+          else
+            error 'Could not get ranges for fragment tags <> and </>.'
+          end
+        else
+          vim.notify('Fragment tags (<> </>) not found, wrapping entire fragment content.', vim.log.levels.WARN)
+          -- Fallback for fragments if tags aren't found: wrap the whole text content
+          local wrapped_text = '<' .. new_tag_name .. '>' .. original_text .. '</' .. new_tag_name .. '>'
+          wrapped_text_lines = vim.split(wrapped_text, '\n', { plain = true }) -- Use plain=true for safety
+          -- Replace the original element's range with the new wrapped text
+          api.nvim_buf_set_text(bufnr, sr, sc, er, ec, wrapped_text_lines)
+          return -- Return early
+        end
+      end
+
+      -- Standard wrapping for element, jsx_element, jsx_self_closing_element
+      local wrapped_text = '<' .. new_tag_name .. '>' .. original_text .. '</' .. new_tag_name .. '>'
+      wrapped_text_lines = vim.split(wrapped_text, '\n', { plain = true }) -- Use plain=true for safety
+
+      -- Replace the original element's range with the new wrapped text
+      api.nvim_buf_set_text(bufnr, sr, sc, er, ec, wrapped_text_lines)
+    end) -- end of nvim_buf_call
+
+    if not apply_success then
+      vim.notify('Error applying wrapping changes: ' .. tostring(result), vim.log.levels.ERROR)
     else
-      vim.notify('Error applying wrap: ' .. tostring(err), vim.log.levels.ERROR)
+      vim.notify('Wrapped element with <' .. new_tag_name .. '>.', vim.log.levels.INFO)
+      -- Optional: Trigger auto-formatting if you have a formatter setup
+      -- pcall(vim.lsp.buf.format, { async = true }) -- Use pcall for safety
     end
   end)
-end
-
--- Main entry function - NORMAL MODE ONLY
-function M.wrap_in_tag_prompt()
-  local current_mode = fn.mode(1)
-  local bufnr = api.nvim_get_current_buf()
-  if current_mode == 'n' then
-    handle_normal_wrap_only(bufnr)
-  end
 end
 
 return M

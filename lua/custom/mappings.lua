@@ -248,7 +248,11 @@ map('n', '<leader>tr', function()
 end, { desc = '[T]ag [R]ename Tag (Prompt)' })
 
 local tag_wrapper = require 'custom.black-magics.tag-wrapper'
-map('n', '<leader>tw', tag_wrapper.wrap_in_tag_prompt, { desc = '[T]ag [W]rap Element (Normal)' })
-map('v', '<leader>tw', tag_wrapper.wrap_in_tag_prompt, { desc = '[T]ag [W]rap Selection (Visual)' })
+map('n', '<leader>tw', function()
+  tag_wrapper.wrap_tag_prompt()
+end, { desc = '[T]ag [W]rap Element (Normal)' })
+map('v', '<leader>tw', function()
+  tag_wrapper.wrap_tag_prompt()
+end, { desc = '[T]ag [W]rap Selection (Visual)' })
 
 -- Add any other future custom mappings below this line
