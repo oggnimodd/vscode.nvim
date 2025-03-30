@@ -867,7 +867,7 @@ require('lazy').setup({
       --  - va)  - [V]isually select [A]round [)]paren
       --  - yinq - [Y]ank [I]nside [N]ext [Q]uote
       --  - ci'  - [C]hange [I]nside [']quote
-      require('mini.ai').setup { n_lines = 500 }
+      -- require('mini.ai').setup { n_lines = 500 }
 
       -- Add/delete/replace surroundings (brackets, quotes, etc.)
       --
@@ -900,8 +900,29 @@ require('lazy').setup({
     build = ':TSUpdate',
     main = 'nvim-treesitter.configs', -- Sets main module to use for opts
     -- [[ Configure Treesitter ]] See `:help nvim-treesitter`
+    dependencies = {
+      'nvim-treesitter/nvim-treesitter-textobjects',
+    },
     opts = {
-      ensure_installed = { 'bash', 'c', 'diff', 'html', 'lua', 'luadoc', 'markdown', 'markdown_inline', 'query', 'vim', 'vimdoc' },
+      ensure_installed = {
+        'bash',
+        'c',
+        'diff',
+        'html',
+        'lua',
+        'luadoc',
+        'markdown',
+        'markdown_inline',
+        'query',
+        'vim',
+        'vimdoc',
+        'typescript',
+        'javascript',
+        'css',
+        'json',
+        'tsx',
+        'svelte',
+      },
       -- Autoinstall languages that are not installed
       auto_install = true,
       highlight = {
@@ -912,13 +933,99 @@ require('lazy').setup({
         additional_vim_regex_highlighting = { 'ruby' },
       },
       indent = { enable = true, disable = { 'ruby' } },
+      textobjects = {
+        -- SELECT Keymaps
+        select = {
+          enable = true,
+          lookahead = true, -- Automatically jump forward to textobj
+          keymaps = {
+            -- Functions / Methods
+            ['af'] = '@function.outer',
+            ['if'] = '@function.inner',
+            -- Classes
+            ['ac'] = '@class.outer',
+            ['ic'] = '@class.inner',
+            -- Parameters / Arguments
+            ['aa'] = '@parameter.outer',
+            ['ia'] = '@parameter.inner',
+            -- Conditionals (if, switch, etc.)
+            ['ai'] = '@conditional.outer',
+            ['ii'] = '@conditional.inner',
+            -- Loops (for, while, etc.)
+            ['al'] = '@loop.outer',
+            ['il'] = '@loop.inner',
+            -- Blocks (generic code block)
+            ['ak'] = '@block.outer', -- Note: Using 'k' for block
+            ['ik'] = '@block.inner', -- Note: Using 'k' for block
+            -- Statements (often line(s) of code)
+            ['is'] = '@statement.inner', -- Less common, might select only part of the statement
+            ['as'] = '@statement.outer', -- Often similar to line selection for single-line statements
+            -- Comments
+            ['ad'] = '@comment.outer', -- Note: Using 'd' for comment ('c' conflicts with class)
+            -- Function Calls
+            ['am'] = '@call.outer', -- Note: Using 'm' for method/call
+            ['im'] = '@call.inner', -- Note: Using 'm' for method/call
+          },
+          -- Define selection modes (optional but useful)
+          selection_modes = {
+            ['@parameter.outer'] = 'v', -- charwise
+            ['@function.outer'] = 'V', -- linewise
+            ['@class.outer'] = '<c-v>', -- blockwise
+            -- Add more if needed
+          },
+          include_surrounding_whitespace = true, -- Mimic Vim's 'a' behavior
+        },
+
+        -- MOVE Keymaps
+        move = {
+          enable = true,
+          set_jumps = true, -- Set jumps in the jumplist
+          goto_next_start = {
+            [']m'] = '@function.outer',
+            [']]'] = '@class.outer',
+          },
+          goto_next_end = {
+            [']M'] = '@function.outer',
+            [']['] = '@class.outer',
+          },
+          goto_previous_start = {
+            ['[m'] = '@function.outer',
+            ['[['] = '@class.outer',
+          },
+          goto_previous_end = {
+            ['[M'] = '@function.outer',
+            ['[]'] = '@class.outer',
+          },
+        },
+
+        -- SWAP Keymaps
+        swap = {
+          enable = true,
+          swap_next = {
+            [')a'] = '@parameter.inner', -- Note the keymap ')a'
+          },
+          swap_previous = {
+            [')A'] = '@parameter.inner', -- Note the keymap ')A'
+          },
+        },
+
+        -- Optional: LSP Interop (uncomment and configure if desired)
+        -- lsp_interop = {
+        --   enable = true,
+        --   border = 'none',
+        --   peek_definition_code = {
+        --     ["<leader>df"] = "@function.outer",
+        --     ["<leader>dF"] = "@class.outer",
+        --   },
+        -- },
+      },
+      -- There are additional nvim-treesitter modules that you can use to interact
+      -- with nvim-treesitter. You should go explore a few and see what interests you:
+      --
+      --    - Incremental selection: Included, see `:help nvim-treesitter-incremental-selection-mod`
+      --    - Show your current context: https://github.com/nvim-treesitter/nvim-treesitter-context
+      --    - Treesitter + textobjects: https://github.com/nvim-treesitter/nvim-treesitter-textobjects
     },
-    -- There are additional nvim-treesitter modules that you can use to interact
-    -- with nvim-treesitter. You should go explore a few and see what interests you:
-    --
-    --    - Incremental selection: Included, see `:help nvim-treesitter-incremental-selection-mod`
-    --    - Show your current context: https://github.com/nvim-treesitter/nvim-treesitter-context
-    --    - Treesitter + textobjects: https://github.com/nvim-treesitter/nvim-treesitter-textobjects
   },
 
   -- The following comments only work if you have downloaded the kickstart repo, not just copy pasted the
