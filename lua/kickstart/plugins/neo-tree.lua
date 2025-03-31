@@ -27,7 +27,7 @@ return {
       filtered_items = {
         visible = false, -- Set to true to see hidden files by default
         hide_dotfiles = false, -- If true, hides files/dirs starting with '.'
-        hide_gitignored = true, -- RECOMMENDED: Hides files listed in .gitignore
+        hide_gitignored = false, -- RECOMMENDED: Hides files listed in .gitignore
         hide_hidden = true, -- Hides files with the 'hidden' attribute (Windows)
         hide_by_name = {
           -- Folders you want hidden FROM THE TREE VIEW (and thus ignored by follow_current_file)
