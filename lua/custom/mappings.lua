@@ -246,4 +246,7 @@ map('v', '<leader>tw', function()
   tag_wrapper.wrap_tag_prompt()
 end, { desc = '[T]ag [W]rap Selection (Visual)' })
 
+-- Hover
+vim.keymap.set('n', '<leader>k', vim.lsp.buf.hover, { desc = 'Show Type Definition' })
+
 -- Add any other future custom mappings below this line
