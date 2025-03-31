@@ -249,4 +249,9 @@ end, { desc = '[T]ag [W]rap Selection (Visual)' })
 -- Hover
 vim.keymap.set('n', '<leader>k', vim.lsp.buf.hover, { desc = 'Show Type Definition' })
 
+-- VS Code style Command Palette (Ctrl+Shift+P)
+map({ 'n', 'i' }, '<C-S-p>', function()
+  require('telescope.builtin').commands()
+end, { desc = '[Cmd Palette] Commands' })
+
 -- Add any other future custom mappings below this line
