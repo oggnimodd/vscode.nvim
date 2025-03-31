@@ -8,6 +8,11 @@ vim.g.maplocalleader = ' '
 vim.g.have_nerd_font = true
 
 -- [[ Setting options ]]
+
+vim.opt.backup = false -- Do not keep a backup file
+vim.opt.writebackup = false -- Do not make a backup before overwriting file
+vim.opt.swapfile = false -- Disable swap files (optional, but reduces file I/O noise)
+
 -- See `:help vim.opt`
 -- NOTE: You can change these options as you wish!
 --  For more options, you can see `:help option-list`
