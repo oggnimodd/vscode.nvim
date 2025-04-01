@@ -1107,26 +1107,6 @@ require('lazy').setup({
     end,
   },
   {
-    'numToStr/Comment.nvim',
-    dependencies = { 'JoosepAlviste/nvim-ts-context-commentstring' },
-    config = function()
-      local context_commentstring = require 'ts_context_commentstring.integrations.comment_nvim'
-
-      require('Comment').setup {
-        -- Use the required module for context
-        pre_hook = context_commentstring.create_pre_hook(),
-
-        -- Add this line to enable padding
-        padding = true,
-
-        -- Add any other Comment.nvim options here if needed
-        -- toggler = { line = 'gcc', block = 'gbc', },
-        -- opleader = { line = 'gc', block = 'gb', },
-      }
-    end,
-    -- event = "VeryLazy",
-  },
-  {
     'supermaven-inc/supermaven-nvim',
     config = function()
       require('supermaven-nvim').setup {}
@@ -1186,6 +1166,166 @@ require('lazy').setup({
       -- log_level = 'debug',
     },
   },
+  {
+    'numToStr/Comment.nvim',
+    -- Ensure the dependency is correctly specified
+    dependencies = { 'JoosepAlviste/nvim-ts-context-commentstring' },
+    config = function()
+      -- Define a helper function to check if a line is effectively empty (only whitespace)
+      local function is_line_empty(lnum)
+        -- Check if the line number is valid first
+        if lnum <= 0 or lnum > vim.api.nvim_buf_line_count(0) then
+          return false -- Invalid line number
+        end
+        local line_content = vim.api.nvim_buf_get_lines(0, lnum - 1, lnum, false)[1]
+        return line_content ~= nil and line_content:match '^%s*$' ~= nil
+      end
+
+      -- Define the custom comment function
+      local function custom_comment_toggle(ctype_arg)
+        local U = require 'Comment.utils'
+        local ctype = ctype_arg == 'block' and U.ctype.blockwise or U.ctype.linewise
+
+        local current_lnum = vim.api.nvim_win_get_cursor(0)[1]
+
+        -- Check if the current line is empty
+        if is_line_empty(current_lnum) then
+          vim.notify('Custom Toggle: Empty line detected on line ' .. current_lnum, vim.log.levels.DEBUG)
+
+          -- Manually handle commenting the empty line
+          local cfg = require('Comment.config'):get() -- Get current config (includes pre_hook if set below)
+          local ctx = { -- Mock context needed for parse_cstr
+            cmode = U.cmode.comment,
+            cmotion = U.cmotion.line, -- Assume line motion for this case
+            ctype = ctype,
+            range = { srow = current_lnum, scol = 0, erow = current_lnum, ecol = 0 },
+          }
+
+          -- Call parse_cstr which *should* invoke the pre_hook from the config
+          local lcs_raw, rcs_raw = U.parse_cstr(cfg, ctx)
+          if not lcs_raw then -- Handle cases where parse_cstr might fail (e.g., no commentstring defined)
+            vim.notify('Custom Toggle: Could not determine comment string for this context.', vim.log.levels.WARN)
+            return
+          end
+
+          local lcs = vim.trim(lcs_raw) -- Trim spaces defined in commentstring itself
+          local rcs = vim.trim(rcs_raw or '') -- Ensure rcs_raw is not nil
+
+          local new_line_content = ''
+          local target_col_0based = 0
+
+          -- Determine the padding character based on config, but we'll override for line comments
+          local padding_char = U.get_pad(U.is_fn(cfg.padding)) -- Usually a single space " " if padding is true
+
+          -- ***** MODIFICATION START *****
+          if rcs == '' then
+            -- SINGLE-LINE COMMENT CASE (e.g., //, #, --): Force exactly ONE space after the marker.
+            new_line_content = lcs .. ' ' -- Always add a single literal space
+            -- Target column is 0-based index right after the forced space
+            target_col_0based = #new_line_content -- This will be #lcs + 1
+            vim.notify("Custom Toggle Single (Forced Space): Line='" .. new_line_content .. "', Col=" .. target_col_0based, vim.log.levels.DEBUG)
+          else
+            -- BLOCK-LINE COMMENT CASE (e.g., <!-- -->, /* */): Use original padding logic for cursor placement.
+            -- This keeps the HTML/CSS behaviour ("<!-- | -->") intact.
+            -- It relies on the cfg.padding setting.
+            new_line_content = lcs .. padding_char .. padding_char .. rcs
+            -- Target column is 0-based index after LCS and the first padding character
+            target_col_0based = #lcs + #padding_char -- e.g., for "<!-- | -->", target col is 5 (index 4)
+            vim.notify("Custom Toggle Block (Padding Logic): Line='" .. new_line_content .. "', Col=" .. target_col_0based, vim.log.levels.DEBUG)
+          end
+          -- ***** MODIFICATION END *****
+
+          vim.api.nvim_buf_set_lines(0, current_lnum - 1, current_lnum, false, { new_line_content })
+
+          -- Ensure cursor position is valid before setting
+          local final_line_len = vim.fn.strchars(new_line_content) -- Use strchars for multibyte safety
+          if target_col_0based > final_line_len then
+            target_col_0based = final_line_len -- Clamp to end if calculation is off
+            vim.notify('Custom Toggle: Clamped target column to ' .. target_col_0based, vim.log.levels.WARN)
+          end
+
+          -- Set cursor *before* starting insert
+          vim.api.nvim_win_set_cursor(0, { current_lnum, target_col_0based })
+          vim.cmd 'startinsert' -- Enter insert mode
+        else
+          -- Line is not empty, use the default Comment.nvim toggle logic via <Plug> mapping
+          vim.notify('Custom Toggle: Line not empty, using default <Plug>', vim.log.levels.DEBUG)
+          local plug_mapping = ''
+          if ctype == U.ctype.linewise then
+            plug_mapping = '<Plug>(comment_toggle_linewise_current)'
+          else -- blockwise
+            plug_mapping = '<Plug>(comment_toggle_blockwise_current)'
+          end
+          -- Use 'n' mode for feedkeys. 'm' might also work but 'n' is common.
+          vim.api.nvim_feedkeys(vim.api.nvim_replace_termcodes(plug_mapping, true, false, true), 'n', false)
+        end
+      end
+
+      -- >>>>> IMPORTANT SETUP PART <<<<<
+      require('Comment').setup {
+        padding = true, -- Keep padding true, block comments rely on this in the custom func
+        sticky = false, -- Keep sticky false as requested
+        ignore = nil,
+
+        -- *** Add the pre_hook here ***
+        pre_hook = require('ts_context_commentstring.integrations.comment_nvim').create_pre_hook(),
+
+        -- Disable default basic mappings for toggler/opleader that we override
+        mappings = {
+          basic = false, -- We remap gcc/gbc ourselves + gc/gb operators
+          extra = true, -- Keep extra mappings like gco, gcA etc.
+        },
+
+        post_hook = nil, -- Not using post_hook in this approach
+
+        -- Keep default names stored in config for reference if needed elsewhere
+        -- These are NOT used for keymapping if mappings.basic = false
+        toggler = { line = 'gcc', block = 'gbc' },
+        opleader = { line = 'gc', block = 'gb' },
+        extra = { above = 'gcO', below = 'gco', eol = 'gcA' },
+      }
+      -- >>>>> END OF SETUP PART <<<<<
+
+      -- Now, create our custom mappings that call our function
+      -- Using default keys 'gcc' and 'gbc'
+      vim.keymap.set('n', 'gcc', function()
+        custom_comment_toggle 'line'
+      end, { desc = '[Custom] Comment toggle line / empty line' })
+      vim.keymap.set('n', 'gbc', function()
+        custom_comment_toggle 'block'
+      end, { desc = '[Custom] Comment toggle block / empty line' })
+
+      -- Re-create the default operator-pending mappings using <Plug> since mappings.basic = false
+      -- These handle commenting motions like gcj, gcw, gci{ etc.
+      vim.keymap.set('n', 'gc', '<Plug>(comment_toggle_linewise)', { desc = 'Comment toggle linewise operator' })
+      vim.keymap.set('n', 'gb', '<Plug>(comment_toggle_blockwise)', { desc = 'Comment toggle blockwise operator' })
+      vim.keymap.set('x', 'gc', '<Plug>(comment_toggle_linewise_visual)', { desc = 'Comment toggle linewise visual' })
+      vim.keymap.set('x', 'gb', '<Plug>(comment_toggle_blockwise_visual)', { desc = 'Comment toggle blockwise visual' })
+
+      -- Re-create the count mappings using <Plug> since mappings.basic = false
+      -- These handle [count]gcc and [count]gbc behavior
+      local vvar = vim.api.nvim_get_vvar
+      vim.keymap.set('n', 'gcc', function()
+        -- Check if count is provided. If yes, use count plug; if no, use our custom func.
+        if vvar 'count' == 0 then
+          custom_comment_toggle 'line'
+        else
+          -- Feedkeys the count-aware plug mapping
+          vim.api.nvim_feedkeys(vim.api.nvim_replace_termcodes('<Plug>(comment_toggle_linewise_count)', true, false, true), 'n', false)
+        end
+      end, { expr = false, desc = '[Custom] Comment toggle line / count' }) -- Change expr to false as the function doesn't return a string anymore
+
+      vim.keymap.set('n', 'gbc', function()
+        -- Check if count is provided. If yes, use count plug; if no, use our custom func.
+        if vvar 'count' == 0 then
+          custom_comment_toggle 'block'
+        else
+          -- Feedkeys the count-aware plug mapping
+          vim.api.nvim_feedkeys(vim.api.nvim_replace_termcodes('<Plug>(comment_toggle_blockwise_count)', true, false, true), 'n', false)
+        end
+      end, { expr = false, desc = '[Custom] Comment toggle block / count' }) -- Change expr to false
+    end, -- end config function
+  }, -- end plugin spec, -- end plugin spec -- end plugin spec -- end plugin spec -- end plugin spec
 }, {
   ui = {
     -- If you are using a Nerd Font: set icons to an empty table which will use the

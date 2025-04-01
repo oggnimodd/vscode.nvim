@@ -9,8 +9,8 @@ map({ 'n', 'v', 'i' }, '<C-s>', '<Cmd>write!<CR><Esc>', { desc = 'Save File (For
 -- Quit All (Force)
 map({ 'n', 'i', 'v', 'c' }, '<C-q>', '<Cmd>qa!<CR>', { desc = 'Quit All without saving' })
 
--- [[ Clipboard Operations (Copy/Paste/Cut) ]]
 -- Ensure 'vim.opt.clipboard = "unnamedplus"' is set in init.lua or similar config
+-- [[ Clipboard Operations (Copy/Paste/Cut) ]]
 
 -- Copy
 map('v', '<C-c>', '"+y', { desc = 'Copy Selection to system clipboard' })
@@ -53,8 +53,13 @@ map('v', '<A-up>', ":move '<-2<CR>gv=gv", { desc = 'Move selection up' }) -- Cor
 
 -- Insert Line Below (Ctrl+Enter)
 -- Normal Mode: Use 'o' command
-map('i', '<C-Enter>', '<C-o>o', { desc = '[VSCode] Insert line below' })
+map('i', '<C-j>', '<C-o>o', { desc = '[VSCode] Insert line below' })
 -- CORRECTED THIS LINE: Remove the <Esc> to stay in Insert mode
+map('n', '<C-j>', 'o', { desc = '[VSCode] Insert line below' })
+map('v', '<C-j>', '<Esc>o', { desc = '[VSCode] Insert line below (exit visual)' })
+
+-- Also make ctrl+enter similar to vscode basically ctrl+J
+map('i', '<C-Enter>', '<C-o>o', { desc = '[VSCode] Insert line below' })
 map('n', '<C-Enter>', 'o', { desc = '[VSCode] Insert line below' })
 map('v', '<C-Enter>', '<Esc>o', { desc = '[VSCode] Insert line below (exit visual)' })
 
@@ -171,49 +176,6 @@ end, { desc = '[Ctrl+P] Find Files' })
 map({ 'n', 'v' }, '<C-f>', '/', { desc = '[Ctrl+F] Search Forward' })
 map('i', '<C-f>', '<Esc>/', { desc = '[Ctrl+F] Search Forward' })
 
--- [[ Commenting (Ctrl+/) ]] - Using Comment.nvim plugin API
-
--- Normal mode: Toggle current line
--- Behaves like VSCode on empty lines: adds comment, adds space, enters Insert mode.
-map('n', '<C-/>', function()
-  local current_line = vim.api.nvim_get_current_line()
-  local was_line_effectively_empty = current_line:match '^%s*$'
-
-  require('Comment.api').toggle.linewise.current()
-
-  if was_line_effectively_empty then
-    -- Move to the end ($), Append ('a'), Insert a space (' '), stay in Insert mode.
-    vim.api.nvim_feedkeys('$a ', 'n', true)
-  end
-  -- If the line was not empty, stay in Normal mode.
-end, { desc = 'Toggle comment line (Insert+Space on empty)' }) -- Updated description
-
--- Visual mode: Toggle selected lines
-map('v', '<C-/>', function()
-  local esc = vim.api.nvim_replace_termcodes('<ESC>', true, false, true)
-  vim.api.nvim_feedkeys(esc, 'nx', false)
-  require('Comment.api').toggle.linewise(vim.fn.visualmode())
-end, { desc = 'Toggle comment for selection' })
-
--- Insert mode: Toggle current line with VSCode-like behavior on empty lines
-map('i', '<C-/>', function()
-  local current_line = vim.api.nvim_get_current_line()
-  local is_line_effectively_empty = current_line:match '^%s*$'
-
-  local esc = vim.api.nvim_replace_termcodes('<Esc>', true, false, true)
-  vim.api.nvim_feedkeys(esc, 'n', true) -- Escape to Normal mode
-
-  require('Comment.api').toggle.linewise.current() -- Toggle the comment
-
-  if is_line_effectively_empty then
-    -- If the line was empty: Move to end ($), Append ('a'), Insert space (' ')
-    vim.api.nvim_feedkeys('$a ', 'n', true)
-  else
-    -- If the line wasn't empty: Return to last insert position ('gi')
-    vim.api.nvim_feedkeys('gi', 'n', true)
-  end
-end, { desc = 'Toggle comment line (VSCode like + Space on empty)' }) -- Updated description
-
 -- [[ LSP Rename (F2) ]]
 map({ 'n', 'v', 'i' }, '<F2>', '<Cmd>lua vim.lsp.buf.rename()<CR>', { desc = 'Rename Symbol' })
 
@@ -256,5 +218,17 @@ vim.keymap.set('n', '<leader>k', vim.lsp.buf.hover, { desc = 'Show Type Definiti
 map({ 'n', 'i' }, '<C-S-p>', function()
   require('telescope.builtin').commands()
 end, { desc = '[Cmd Palette] Commands' })
+
+-- Go to first non-blank character (^) using Alt+h
+map({ 'n', 'v' }, '<A-h>', '^', { desc = 'Go/Select to First Non-Blank' })
+map('i', '<A-h>', '<C-o>^', { desc = 'Go to First Non-Blank' })
+
+-- Go to end of line ($) using Alt+l
+map({ 'n', 'v' }, '<A-l>', '$', { desc = 'Go/Select to End of Line' })
+map('i', '<A-l>', '<C-o>$', { desc = 'Go to End of Line' })
+
+-- Optional: Absolute start (column 0)
+-- map({ 'n', 'v' }, '<A-h>', '0', { desc = 'Go/Select to Start of Line (Col 0)' })
+-- map('i', '<A-h>', '<C-o>0', { desc = 'Go to Start of Line (Col 0)' })
 
 -- Add any other future custom mappings below this line
