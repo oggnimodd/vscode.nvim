@@ -1176,6 +1176,7 @@ require('lazy').setup({
 
       -- Helper to check if a line is empty (needed by custom_comment_toggle)
       local function is_line_empty(lnum)
+        -- ... (no changes) ...
         if lnum <= 0 or lnum > A.nvim_buf_line_count(0) then
           return false
         end
@@ -1185,6 +1186,7 @@ require('lazy').setup({
 
       -- Linewise toggle for Normal mode (handles empty lines, count)
       local function custom_comment_toggle(ctype_arg)
+        -- ... (no changes) ...
         local ctype = ctype_arg == 'block' and U.ctype.blockwise or U.ctype.linewise
         local current_lnum = A.nvim_win_get_cursor(0)[1]
         cfg = cfg or require('Comment.config'):get()
@@ -1220,13 +1222,13 @@ require('lazy').setup({
         end
       end
 
-      -- **REWRITTEN AGAIN: Function for Insert Mode Ctrl+/ (toggles CURRENT line)**
+      -- **UPDATED: Function for Insert Mode Ctrl+/ (toggles CURRENT line with sticky cursor)**
       local function custom_toggle_comment_current_insert()
         cfg = cfg or require('Comment.config'):get()
-        local current_lnum, current_col = unpack(A.nvim_win_get_cursor(0))
-        local action_cmode -- Will be set based on action
+        local current_lnum, current_col_0based = unpack(A.nvim_win_get_cursor(0))
+        local action_cmode
 
-        -- --- Get necessary comment info (always linewise for this mapping) ---
+        -- --- Get necessary comment info ---
         local ctx_for_strings = {
           cmode = U.cmode.toggle,
           cmotion = U.cmotion.line,
@@ -1243,13 +1245,22 @@ require('lazy').setup({
         local padding_bool = U.is_fn(cfg.padding)
         local padding_char = U.get_pad(padding_bool)
         local if_rcs = U.is_empty(rcs) and rcs or padding_char .. rcs
+        -- Calculate lengths needed for cursor adjustment (use strchars for multibyte safety)
+        local lcs_len = vim.fn.strchars(lcs)
+        local padding_len = vim.fn.strchars(padding_char)
+        local comment_prefix_len = lcs_len + padding_len
 
-        -- --- Get current line content ---
+        -- --- Get current line content and calculate relative cursor position ---
         local current_line_content = A.nvim_buf_get_lines(0, current_lnum - 1, current_lnum, false)[1]
         if current_line_content == nil then
           vim.notify('Custom Insert Toggle: Could not get current line content.', vim.log.levels.ERROR)
           return
         end
+        local indent_str = current_line_content:match '^%s*' or ''
+        local indent_len = vim.fn.strchars(indent_str)
+        -- Calculate cursor position relative to the start of non-whitespace content
+        -- max(0, ...) ensures it's not negative if cursor is in indentation
+        local relative_col = math.max(0, current_col_0based - indent_len)
 
         -- --- Check if the current line is commented ---
         local is_commented_func = U.is_commented(lcs, rcs, padding_bool, nil, nil) -- Full line check
@@ -1268,7 +1279,7 @@ require('lazy').setup({
           final_ctx.cmode = action_cmode
           local uncommenter_func = U.uncommenter(lcs, rcs, padding_bool, nil, nil)
           local uncommented_line
-          local success, result = pcall(uncommenter_func, current_line_content) -- Catch errors from uncommenter
+          local success, result = pcall(uncommenter_func, current_line_content)
           if not success then
             vim.notify('Custom Insert Toggle: Error during uncomment: ' .. tostring(result), vim.log.levels.WARN)
             return
@@ -1277,44 +1288,56 @@ require('lazy').setup({
 
           -- Replace the current line
           A.nvim_buf_set_lines(0, current_lnum - 1, current_lnum, false, { uncommented_line })
-          -- Move cursor to beginning of the uncommented line
-          A.nvim_win_set_cursor(0, { current_lnum, 0 })
+
+          -- Calculate new cursor column: indent + (relative_col adjusted for removed prefix)
+          -- The relative position was calculated *after* the comment prefix, so subtract prefix length
+          local adjusted_relative_col = math.max(0, relative_col - comment_prefix_len)
+          local target_col = indent_len + adjusted_relative_col
+
+          -- Clamp target_col to the new line length
+          local new_line_len = vim.fn.strchars(uncommented_line)
+          target_col = math.min(target_col, new_line_len)
+          target_col = math.max(0, target_col) -- Ensure not negative
+
+          -- Set cursor position
+          A.nvim_win_set_cursor(0, { current_lnum, target_col })
         else
           -- *** COMMENT ACTION (IN PLACE on current line) ***
           action_cmode = U.cmode.comment
           final_ctx.cmode = action_cmode
-          -- Extract indent and content from the current line
-          local indent_str = current_line_content:match '^%s*' or ''
-          local content_after_indent = current_line_content:match '^%s*(.*)' or current_line_content -- Handle empty/whitespace line
-
-          -- Construct the new commented line content
-          -- Use content_after_indent which might be empty or the whole line if no indent
+          local content_after_indent = current_line_content:match '^%s*(.*)' or current_line_content
           local commented_line = indent_str .. lcs .. padding_char .. content_after_indent .. if_rcs
 
           -- Replace the current line
           A.nvim_buf_set_lines(0, current_lnum - 1, current_lnum, false, { commented_line })
 
-          -- Calculate the desired cursor position on the current line: after indent + lcs + padding
-          local target_col = vim.fn.strchars(indent_str .. lcs .. padding_char)
-          -- Set the cursor position
+          -- Calculate new cursor column: indent + prefix + relative_col
+          local target_col = indent_len + comment_prefix_len + relative_col
+
+          -- Clamp target_col to the new line length
+          local new_line_len = vim.fn.strchars(commented_line)
+          target_col = math.min(target_col, new_line_len)
+          target_col = math.max(0, target_col) -- Ensure not negative
+
+          -- Set cursor position
           A.nvim_win_set_cursor(0, { current_lnum, target_col })
         end
 
         -- Call post_hook if defined
         U.is_fn(cfg.post_hook, final_ctx)
 
-        -- Stay in Insert mode - achieved by only using nvim API calls that don't change mode
+        -- Stay in Insert mode
       end
 
       -- >>>>> SETUP <<<<<
       cfg = require('Comment').setup {
         padding = true,
-        sticky = false,
+        sticky = false, -- Note: This setup option primarily affects NORMAL mode ops. We handle Insert mode sticky manually.
         ignore = nil,
         pre_hook = require('ts_context_commentstring.integrations.comment_nvim').create_pre_hook(),
         mappings = {
-          basic = false, -- Using custom mappings
-          extra = true, -- Keep extra mappings if desired
+          basic = false,
+          extra = true,
         },
         post_hook = nil,
         toggler = { line = 'gcc', block = 'gbc' },
@@ -1359,7 +1382,7 @@ require('lazy').setup({
       vim.keymap.set('x', 'gb', '<Plug>(comment_toggle_blockwise_visual)', { desc = 'Comment toggle blockwise visual' })
       vim.keymap.set('x', '<C-/>', '<Plug>(comment_toggle_linewise_visual)', { desc = 'Comment toggle linewise visual (Ctrl+/)' })
 
-      -- ** Ctrl+/ Insert Mode Toggle (Uses the NEW function targeting CURRENT line) **
+      -- ** Ctrl+/ Insert Mode Toggle (Uses the sticky cursor logic) **
       vim.keymap.set(
         'i',
         '<C-/>',
@@ -1367,10 +1390,8 @@ require('lazy').setup({
         { noremap = true, silent = true, desc = '[Custom] Toggle comment current line (Insert Ctrl+/)' }
       )
 
-      -- Explicit extra mappings (optional, uncomment if needed)
-      -- vim.keymap.set('n', 'gcA', '<Plug>(comment_toggle_eol_current)', { desc = 'Comment toggle EOL' })
-      -- vim.keymap.set('n', 'gcO', '<Plug>(comment_toggle_above_current)', { desc = 'Comment toggle above' })
-      -- vim.keymap.set('n', 'gco', '<Plug>(comment_toggle_below_current)', { desc = 'Comment toggle below' })
+      -- Explicit extra mappings (optional)
+      -- ...
       -- >>>>> END OF MAPPINGS <<<<<
     end, -- end config function
   },
