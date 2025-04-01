@@ -172,44 +172,47 @@ map({ 'n', 'v' }, '<C-f>', '/', { desc = '[Ctrl+F] Search Forward' })
 map('i', '<C-f>', '<Esc>/', { desc = '[Ctrl+F] Search Forward' })
 
 -- [[ Commenting (Ctrl+/) ]] - Using Comment.nvim plugin API
+
 -- Normal mode: Toggle current line
+-- Behaves like VSCode on empty lines: adds comment, adds space, enters Insert mode.
 map('n', '<C-/>', function()
+  local current_line = vim.api.nvim_get_current_line()
+  local was_line_effectively_empty = current_line:match '^%s*$'
+
   require('Comment.api').toggle.linewise.current()
-end, { desc = 'Toggle comment line' })
+
+  if was_line_effectively_empty then
+    -- Move to the end ($), Append ('a'), Insert a space (' '), stay in Insert mode.
+    vim.api.nvim_feedkeys('$a ', 'n', true)
+  end
+  -- If the line was not empty, stay in Normal mode.
+end, { desc = 'Toggle comment line (Insert+Space on empty)' }) -- Updated description
 
 -- Visual mode: Toggle selected lines
 map('v', '<C-/>', function()
-  -- Need <Esc> to exit visual mode before Comment.nvim gets the range correctly
   local esc = vim.api.nvim_replace_termcodes('<ESC>', true, false, true)
   vim.api.nvim_feedkeys(esc, 'nx', false)
-  -- Use linewise toggle with the 'v' motion context
   require('Comment.api').toggle.linewise(vim.fn.visualmode())
 end, { desc = 'Toggle comment for selection' })
 
 -- Insert mode: Toggle current line with VSCode-like behavior on empty lines
 map('i', '<C-/>', function()
-  -- Check if the current line is empty or only whitespace
   local current_line = vim.api.nvim_get_current_line()
   local is_line_effectively_empty = current_line:match '^%s*$'
 
-  -- Escape insert mode, perform the toggle, then decide how to re-enter insert mode
   local esc = vim.api.nvim_replace_termcodes('<Esc>', true, false, true)
-  vim.api.nvim_feedkeys(esc, 'n', true) -- Use 'n' mode, 'true' means remap keys in sequence if needed
+  vim.api.nvim_feedkeys(esc, 'n', true) -- Escape to Normal mode
 
-  -- Perform the comment toggle using the API
-  require('Comment.api').toggle.linewise.current()
+  require('Comment.api').toggle.linewise.current() -- Toggle the comment
 
-  -- Decide how to re-enter insert mode
   if is_line_effectively_empty then
-    -- If the line was empty, move to the end of the now-commented line and enter insert mode
-    -- 'A' command does exactly this.
-    vim.api.nvim_feedkeys('A', 'n', true)
+    -- If the line was empty: Move to end ($), Append ('a'), Insert space (' ')
+    vim.api.nvim_feedkeys('$a ', 'n', true)
   else
-    -- If the line wasn't empty, return to the last known insert position
-    -- 'gi' command does exactly this.
+    -- If the line wasn't empty: Return to last insert position ('gi')
     vim.api.nvim_feedkeys('gi', 'n', true)
   end
-end, { desc = 'Toggle comment line (VSCode like on empty)' })
+end, { desc = 'Toggle comment line (VSCode like + Space on empty)' }) -- Updated description
 
 -- [[ LSP Rename (F2) ]]
 map({ 'n', 'v', 'i' }, '<F2>', '<Cmd>lua vim.lsp.buf.rename()<CR>', { desc = 'Rename Symbol' })
