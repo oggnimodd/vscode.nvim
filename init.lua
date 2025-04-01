@@ -1172,6 +1172,7 @@ require('lazy').setup({
     config = function()
       local U = require 'Comment.utils'
       local A = vim.api
+      local cfg -- Will be set after require('Comment').setup
 
       local function is_line_empty(lnum)
         if lnum <= 0 or lnum > A.nvim_buf_line_count(0) then
@@ -1184,11 +1185,9 @@ require('lazy').setup({
       local function custom_comment_toggle(ctype_arg)
         local ctype = ctype_arg == 'block' and U.ctype.blockwise or U.ctype.linewise
         local current_lnum = A.nvim_win_get_cursor(0)[1]
+        cfg = cfg or require('Comment.config'):get() -- Ensure cfg is loaded
 
         if is_line_empty(current_lnum) then
-          vim.notify('Custom Toggle: Empty line detected on line ' .. current_lnum, vim.log.levels.DEBUG)
-
-          local cfg = require('Comment.config'):get()
           local ctx = {
             cmode = U.cmode.comment,
             cmotion = U.cmotion.line,
@@ -1198,7 +1197,7 @@ require('lazy').setup({
 
           local lcs_raw, rcs_raw = U.parse_cstr(cfg, ctx)
           if not lcs_raw then
-            vim.notify('Custom Toggle: Could not determine comment string.', vim.log.levels.WARN)
+            vim.notify('Custom Toggle: Could not determine comment string.', vim.log.levels.WARN) -- Kept WARN as it indicates a failure
             return
           end
 
@@ -1209,40 +1208,27 @@ require('lazy').setup({
           local if_rcs = U.is_empty(rcs) and rcs or padding_char .. rcs
           local new_line_content = lcs .. padding_char .. if_rcs
 
-          -- ***** MODIFICATION: Mimic move_n_insert logic *****
           -- Calculate the column *before* the desired insertion point.
-          -- For "// |", we want to append after "//", so target col is length of "//" (#lcs).
-          -- For "<!-- | -->", we want to append after "<!--", so target col is length of "<!--" (#lcs).
-          local target_col_0based_before_append = #lcs
-
-          vim.notify(
-            "Custom Toggle Empty Line: Line='" .. new_line_content .. "', TargetColBeforeAppend=" .. target_col_0based_before_append,
-            vim.log.levels.DEBUG
-          )
+          local target_col_0based_before_append = vim.fn.strchars(lcs) -- Use strchars for multibyte safety
 
           A.nvim_buf_set_lines(0, current_lnum - 1, current_lnum, false, { new_line_content })
 
-          -- Ensure calculated column is valid within the new line content's bounds
+          -- Ensure calculated column is valid
           local final_line_len = vim.fn.strchars(new_line_content)
           if target_col_0based_before_append > final_line_len then
-            target_col_0based_before_append = final_line_len -- Clamp if somehow lcs is longer than the line
-            vim.notify('Custom Toggle: Clamped target column to ' .. target_col_0based_before_append, vim.log.levels.WARN)
+            target_col_0based_before_append = final_line_len -- Clamp
           end
-          -- Handle potential 0 length lcs (though unlikely for comments)
           if target_col_0based_before_append < 0 then
             target_col_0based_before_append = 0
           end
 
-          -- Set cursor to the position *before* where we want to type
+          -- Set cursor
           A.nvim_win_set_cursor(0, { current_lnum, target_col_0based_before_append })
 
-          -- Use feedkeys 'a' to append AFTER the cursor, non-remap, insert mode keys, don't wait.
-          -- This directly replicates the move_n_insert behavior from extra.lua
+          -- Use feedkeys 'a' to append AFTER the cursor
           A.nvim_feedkeys(A.nvim_replace_termcodes('a', true, false, true), 'ni', false)
-        -- ***** END OF MODIFICATION *****
         else
           -- Line is not empty, use the default Comment.nvim toggle logic
-          vim.notify('Custom Toggle: Line not empty, using default <Plug>', vim.log.levels.DEBUG)
           local plug_mapping = ''
           if ctype == U.ctype.linewise then
             plug_mapping = '<Plug>(comment_toggle_linewise_current)'
@@ -1253,26 +1239,74 @@ require('lazy').setup({
         end
       end
 
-      -- >>>>> SETUP PART (Unchanged) <<<<<
-      require('Comment').setup {
+      -- ** NEW: Function for Insert Mode Ctrl+/ **
+      local function custom_insert_comment_above()
+        cfg = cfg or require('Comment.config'):get() -- Ensure cfg is loaded
+        local current_lnum, current_col = unpack(A.nvim_win_get_cursor(0))
+
+        -- Create context similar to extra.lua, but for linewise above
+        local ctx = {
+          cmode = U.cmode.comment,
+          cmotion = U.cmotion.line, -- Treat as line operation
+          ctype = U.ctype.linewise, -- Force linewise for this mapping
+          range = { srow = current_lnum, scol = current_col, erow = current_lnum, ecol = current_col },
+        }
+
+        -- Get comment strings using the standard mechanism (respects pre_hook)
+        local lcs_raw, rcs_raw = U.parse_cstr(cfg, ctx)
+        if not lcs_raw then
+          vim.notify('Custom Insert: Could not determine comment string.', vim.log.levels.WARN)
+          return
+        end
+
+        local lcs = vim.trim(lcs_raw)
+        local rcs = vim.trim(rcs_raw or '')
+        local padding = U.get_pad(U.is_fn(cfg.padding))
+        local if_rcs = U.is_empty(rcs) and rcs or padding .. rcs
+
+        -- Get indentation from the *current* line
+        local current_line_content = A.nvim_buf_get_lines(0, current_lnum - 1, current_lnum, false)[1] or ''
+        local indent_str = current_line_content:match '^%s*' or ''
+
+        -- Construct the new line content
+        local new_line_content = indent_str .. lcs .. padding .. if_rcs
+
+        -- Insert the new commented line *above* the current line
+        -- Use nvim_buf_set_lines to insert, which is safer in insert mode than nvim_put
+        A.nvim_buf_set_lines(0, current_lnum - 1, current_lnum - 1, false, { new_line_content })
+
+        -- Calculate the desired cursor position: after indent, lcs, and padding
+        -- Use strchars for multi-byte safety
+        local target_col = vim.fn.strchars(indent_str .. lcs .. padding)
+
+        -- Set the cursor position on the newly inserted line
+        -- The line number remains `current_lnum` because we inserted *before* it.
+        A.nvim_win_set_cursor(0, { current_lnum, target_col })
+
+        -- No need to call feedkeys 'a' as we are already in Insert mode.
+        -- Simply setting the cursor position keeps us in Insert mode.
+        U.is_fn(cfg.post_hook, ctx) -- Call post_hook if defined
+      end
+
+      cfg = require('Comment').setup {
         padding = true,
-        sticky = false,
+        sticky = false, -- Set sticky to false if you prefer cursor not returning after comment op
         ignore = nil,
         pre_hook = require('ts_context_commentstring.integrations.comment_nvim').create_pre_hook(),
         mappings = {
-          basic = false,
-          extra = true,
+          basic = false, -- Set to false because we are defining custom mappings below
+          extra = true, -- Keep extra mappings like gcA, gcO, gco if you use them
         },
         post_hook = nil,
-        toggler = { line = 'gcc', block = 'gbc' },
-        opleader = { line = 'gc', block = 'gb' },
-        extra = { above = 'gcO', below = 'gco', eol = 'gcA' },
+        toggler = { line = 'gcc', block = 'gbc' }, -- Default internal naming, overridden by our maps
+        opleader = { line = 'gc', block = 'gb' }, -- Default internal naming, overridden by our maps
+        extra = { above = 'gcO', below = 'gco', eol = 'gcA' }, -- Default internal naming
       }
-      -- >>>>> END OF SETUP PART <<<<<
 
       -- >>>>> MAPPINGS <<<<<
       local vvar = A.nvim_get_vvar
 
+      -- Custom Normal mode toggles (respecting count)
       vim.keymap.set('n', 'gcc', function()
         if vvar 'count' == 0 then
           custom_comment_toggle 'line'
@@ -1289,11 +1323,35 @@ require('lazy').setup({
         end
       end, { expr = false, desc = '[Custom] Comment toggle block / count' })
 
-      -- Re-create necessary operator/visual mappings
+      -- ** Ctrl+/ mapping for linewise toggle (Normal Mode) **
+      -- Mimics the behavior of the custom 'gcc' mapping
+      vim.keymap.set('n', '<C-/>', function()
+        if vvar 'count' == 0 then
+          custom_comment_toggle 'line'
+        else
+          A.nvim_feedkeys(A.nvim_replace_termcodes('<Plug>(comment_toggle_linewise_count)', true, false, true), 'n', false)
+        end
+      end, { expr = false, desc = '[Custom] Comment toggle line / count (Ctrl+/)' })
+
+      -- Operator pending mappings (gc<motion>, gb<motion>)
       vim.keymap.set('n', 'gc', '<Plug>(comment_toggle_linewise)', { desc = 'Comment toggle linewise operator' })
       vim.keymap.set('n', 'gb', '<Plug>(comment_toggle_blockwise)', { desc = 'Comment toggle blockwise operator' })
+
+      -- Visual mode mappings
       vim.keymap.set('x', 'gc', '<Plug>(comment_toggle_linewise_visual)', { desc = 'Comment toggle linewise visual' })
       vim.keymap.set('x', 'gb', '<Plug>(comment_toggle_blockwise_visual)', { desc = 'Comment toggle blockwise visual' })
+
+      -- ** Ctrl+/ mapping for linewise toggle (Visual Mode) **
+      -- Mimics the behavior of 'gc' in visual mode
+      vim.keymap.set('x', '<C-/>', '<Plug>(comment_toggle_linewise_visual)', { desc = 'Comment toggle linewise visual (Ctrl+/)' })
+
+      -- ** Ctrl+/ mapping for Insert Mode **
+      vim.keymap.set('i', '<C-/>', custom_insert_comment_above, { noremap = true, silent = true, desc = '[Custom] Insert comment above (Ctrl+/)' })
+
+      -- Note: Explicitly map 'extra' mappings if needed, as basic=false might affect them.
+      -- Example: vim.keymap.set('n', 'gcA', '<Plug>(comment_toggle_eol_current)', { desc = 'Comment toggle EOL' })
+      -- Example: vim.keymap.set('n', 'gcO', '<Plug>(comment_toggle_above_current)', { desc = 'Comment toggle above' })
+      -- Example: vim.keymap.set('n', 'gco', '<Plug>(comment_toggle_below_current)', { desc = 'Comment toggle below' })
       -- >>>>> END OF MAPPINGS <<<<<
     end, -- end config function
   },
