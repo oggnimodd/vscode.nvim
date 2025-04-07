@@ -231,4 +231,11 @@ map('i', '<A-l>', '<C-o>$', { desc = 'Go to End of Line' })
 -- map({ 'n', 'v' }, '<A-h>', '0', { desc = 'Go/Select to Start of Line (Col 0)' })
 -- map('i', '<A-h>', '<C-o>0', { desc = 'Go to Start of Line (Col 0)' })
 
+-- Move by visual lines when wrap is enabled
+vim.keymap.set('n', 'j', 'gj', { noremap = true, silent = true, desc = 'Move down visual line' })
+vim.keymap.set('n', 'k', 'gk', { noremap = true, silent = true, desc = 'Move up visual line' })
+
+-- Optional: Make it work similarly in Visual mode for selection
+vim.keymap.set('v', 'j', 'gj', { noremap = true, silent = true, desc = 'Move selection down visual line' })
+vim.keymap.set('v', 'k', 'gk', { noremap = true, silent = true, desc = 'Move selection up visual line' })
 -- Add any other future custom mappings below this line
