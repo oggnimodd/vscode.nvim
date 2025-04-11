@@ -94,6 +94,10 @@ vim.opt.autoindent = true -- Copy indent from current line when starting a new l
 vim.opt.smartindent = true -- Perform smart autoindenting when starting a new line.
 -- -- END OF 2-SPACE INDENTATION SETTINGS -------------------
 
+-- Disable default tree
+vim.g.loaded_netrw = 1
+vim.g.loaded_netrwPlugin = 1
+
 -- [[ Basic Keymaps ]]
 --  See `:help vim.keymap.set()`
 
@@ -1118,17 +1122,6 @@ require('lazy').setup({
       require('nvim-ts-autotag').setup {
         -- defaults:
         -- filetypes = { "html", "javascript", "typescript", "javascriptreact", "typescriptreact", "svelte", "vue", "tsx", "jsx", "rescript", "xml", "php", "markdown", "astro", "glimmer", "handlebars", "hbs" }
-      }
-    end,
-  },
-  {
-    'mg979/vim-visual-multi',
-    branch = 'master',
-    init = function()
-      -- Remap Ctrl+D (VSCode style) instead of Ctrl+N
-      vim.g.VM_maps = {
-        ['Find Under'] = '<C-d>', -- Now Ctrl+D adds next match
-        ['Find Subword Under'] = '<C-d>',
       }
     end,
   },
