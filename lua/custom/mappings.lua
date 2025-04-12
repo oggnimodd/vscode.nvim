@@ -238,4 +238,7 @@ vim.keymap.set('n', 'k', 'gk', { noremap = true, silent = true, desc = 'Move up 
 -- Optional: Make it work similarly in Visual mode for selection
 vim.keymap.set('v', 'j', 'gj', { noremap = true, silent = true, desc = 'Move selection down visual line' })
 vim.keymap.set('v', 'k', 'gk', { noremap = true, silent = true, desc = 'Move selection up visual line' })
+
+map('n', '<leader>dc', '<Cmd>RemoveTrailingComments<CR>', { desc = 'Remove Trailing Comments' })
+
 -- Add any other future custom mappings below this line

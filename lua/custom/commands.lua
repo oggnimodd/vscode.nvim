@@ -185,4 +185,91 @@ vim.api.nvim_create_user_command(
 
 -- [[ END Project Tree Command ]]
 
+-- ============================================================
+-- == Command to Remove Trailing Comments ==
+-- ============================================================
+
+-- Function to remove trailing comments based on filetype, handling multiple styles efficiently
+local function remove_trailing_comments()
+  local ft = vim.bo.filetype
+  local pattern -- Will hold the final Vim regex pattern string
+
+  -- Define basic patterns (need double backslash for Lua string and Vim regex)
+  local python_pattern = '\\S\\zs\\s*#.*$'
+  local lua_pattern = '\\S\\zs\\s*--.*$'
+  local js_pattern = '\\S\\zs\\s*//.*$'
+  local block_pattern = '\\S\\zs\\s*/\\*.*\\*/$' -- C-style block comment /* ... */ on one line
+  local html_pattern = '\\S\\zs\\s*<!--.*-->$' -- HTML/XML comment <!-- ... --> on one line
+
+  -- Determine the pattern(s) based on filetype
+  if ft == 'python' then
+    pattern = python_pattern
+  elseif ft == 'lua' then
+    pattern = lua_pattern
+  elseif vim.tbl_contains({ 'javascript', 'typescript', 'javascriptreact', 'typescriptreact', 'jsonc' }, ft) then
+    -- Combine JS line comments and block comments on the same line
+    pattern = '\\S\\zs\\s*\\(//.*\\|/\\*.*\\*/\\)$' -- Need to group alternatives with \(...\) and escape |
+  elseif ft == 'svelte' then
+    -- Combine JS line, C block, and HTML comments
+    pattern = '\\S\\zs\\s*\\(//.*\\|/\\*.*\\*/\\|<!--.*-->\\)$'
+  elseif ft == 'css' or ft == 'scss' or ft == 'less' then
+    pattern = block_pattern -- CSS primarily uses block comments
+  elseif ft == 'html' or ft == 'xml' or ft == 'vue' then -- Vue template uses HTML comments
+    pattern = html_pattern
+  elseif ft == 'sh' or ft == 'bash' or ft == 'zsh' then
+    pattern = python_pattern -- Shell uses '#' like Python
+  elseif ft == 'vim' then
+    pattern = '\\S\\zs\\s*\\".*$' -- Vimscript uses "
+  elseif ft == 'sql' then
+    pattern = lua_pattern -- SQL often uses '--'
+  else
+    -- Add more filetypes and their comment styles here if needed
+    -- Example: elseif ft == 'ruby' then pattern = python_pattern end
+    -- vim.notify('No specific trailing comment pattern for filetype: ' .. ft, vim.log.levels.WARN)
+    return -- Exit if no pattern is defined for the current filetype
+  end
+
+  if not pattern then
+    return -- Exit if pattern logic somehow failed (shouldn't happen with current structure)
+  end
+
+  -- Save view/cursor before making changes
+  local original_cursor = vim.api.nvim_win_get_cursor(0)
+  local original_view = vim.fn.winsaveview()
+  local separator = '#' -- Using '#' as the separator for :s to avoid escaping '/' in patterns
+
+  -- Escape the *final* pattern for the chosen separator ONLY if the pattern contains the separator
+  -- In this case, our patterns don't use '#', so escaping is technically not needed, but it's safer.
+  local escaped_pattern_for_cmd = vim.fn.escape(pattern, separator)
+
+  -- Construct the single substitution command
+  -- %s#<pattern>##e
+  -- % - whole buffer
+  -- s - substitute
+  -- # - separator
+  -- <pattern> - the regex to match (escaped for the separator)
+  -- # - separator
+  -- (empty) - replace with nothing
+  -- # - separator
+  -- e - suppress errors if pattern not found (prevents "E486: Pattern not found" messages/prompts)
+  local cmd = string.format('%%s%s%s%s%se', separator, escaped_pattern_for_cmd, separator, separator)
+  -- print("Executing command: " .. cmd) -- Uncomment for debugging
+
+  -- Execute the command
+  vim.cmd(cmd)
+
+  -- Restore view/cursor after making changes
+  -- Use pcall for safety, although errors here are less likely
+  pcall(vim.fn.winrestview, original_view)
+  pcall(vim.api.nvim_win_set_cursor, 0, original_cursor)
+end
+
+-- Create or update the user command :RemoveTrailingComments
+vim.api.nvim_create_user_command('RemoveTrailingComments', remove_trailing_comments, {
+  desc = 'Remove trailing comments for current filetype (Optimized)',
+  force = true, -- Allow redefining the command
+})
+
+-- [[ END Remove Trailing Comments Command ]]
+
 -- Add other custom commands below
