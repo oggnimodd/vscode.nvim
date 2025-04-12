@@ -240,5 +240,6 @@ vim.keymap.set('v', 'j', 'gj', { noremap = true, silent = true, desc = 'Move sel
 vim.keymap.set('v', 'k', 'gk', { noremap = true, silent = true, desc = 'Move selection up visual line' })
 
 map('n', '<leader>dc', '<Cmd>RemoveTrailingComments<CR>', { desc = 'Remove Trailing Comments' })
+map('n', '<leader>dx', '<Cmd>RemoveAllComments<CR>', { desc = 'Remove All Comments' })
 
 -- Add any other future custom mappings below this line
