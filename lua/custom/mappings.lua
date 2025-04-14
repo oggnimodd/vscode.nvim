@@ -244,40 +244,66 @@ map('n', '<leader>dx', '<Cmd>RemoveAllComments<CR>', { desc = 'Remove All Commen
 
 -- Terminal stuff using Alt+`
 local Terminal = require('toggleterm.terminal').Terminal
-local terminal_instance
 
 map({ 'n', 'i', 't' }, '<A-`>', function()
-  if not terminal_instance then
-    terminal_instance = Terminal:new {
-      direction = 'float',
-      id = 1,
-      hidden = true,
-      float_opts = {
-        border = 'none', -- Set border to none
-        width = vim.o.columns,
-        height = function()
-          return math.max(1, math.floor(vim.o.lines * 0.30))
-        end,
-        row = function()
-          local term_height = math.max(1, math.floor(vim.o.lines * 0.30))
-          local border_height = 0 -- Set border_height to 0 since there's no border
-          return math.max(0, vim.o.lines - term_height - border_height)
-        end,
-        col = 0,
-      },
-      on_open = function()
-        vim.schedule(function()
-          vim.cmd 'startinsert!'
-          vim.cmd 'nohlsearch'
-        end)
+  local bottom_term_config = {
+    direction = 'float',
+    id = 1,
+    hidden = true,
+    float_opts = {
+      border = 'none',
+      width = vim.o.columns,
+      height = function()
+        return math.max(1, math.floor(vim.o.lines * 0.30))
       end,
-    }
-  end
-  terminal_instance:toggle()
+      row = function()
+        local term_height = math.max(1, math.floor(vim.o.lines * 0.30))
+        local border_height = 0
+        return math.max(0, vim.o.lines - term_height - border_height)
+      end,
+      col = 0,
+    },
+    on_open = function(t)
+      vim.schedule(function()
+        vim.cmd 'startinsert!'
+        vim.cmd 'nohlsearch'
+      end)
+    end,
+  }
+  local term = Terminal:new(bottom_term_config)
+  term:toggle()
 end, {
-  desc = 'Toggle terminal (float bottom full no border)',
+  desc = 'Toggle terminal (float bottom ID 1)',
   noremap = true,
   silent = true,
 })
 
+map({ 'n', 'i', 't' }, '<c-\\>', function()
+  local default_float_config = {
+    direction = 'float',
+    id = 2,
+    hidden = true,
+    float_opts = {
+      border = 'none',
+      width = vim.o.columns,
+      height = function()
+        return math.max(1, vim.o.lines - 2)
+      end,
+      row = 0,
+      col = 0,
+    },
+    on_open = function(t)
+      vim.schedule(function()
+        vim.cmd 'startinsert!'
+        vim.cmd 'nohlsearch'
+      end)
+    end,
+  }
+  local term = Terminal:new(default_float_config)
+  term:toggle()
+end, {
+  desc = 'Toggle terminal (near full screen float ID 2)',
+  noremap = true,
+  silent = true,
+})
 -- Add any other future custom mappings below this line

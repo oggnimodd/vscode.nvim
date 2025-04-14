@@ -1393,7 +1393,8 @@ require('lazy').setup({
     version = '*',
     opts = {
       direction = 'float',
-      open_mapping = [[<c-\>]],
+      -- open_mapping = [[<c-\>]], -- REMOVED or commented out
+      -- Explicitly set inside the mappings
       size = function(term)
         if term.direction == 'horizontal' then
           return math.floor(vim.o.lines * 0.25)
