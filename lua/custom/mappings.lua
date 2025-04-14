@@ -242,4 +242,42 @@ vim.keymap.set('v', 'k', 'gk', { noremap = true, silent = true, desc = 'Move sel
 map('n', '<leader>dc', '<Cmd>RemoveTrailingComments<CR>', { desc = 'Remove Trailing Comments' })
 map('n', '<leader>dx', '<Cmd>RemoveAllComments<CR>', { desc = 'Remove All Comments' })
 
+-- Terminal stuff using Alt+`
+local Terminal = require('toggleterm.terminal').Terminal
+local terminal_instance
+
+map({ 'n', 'i', 't' }, '<A-`>', function()
+  if not terminal_instance then
+    terminal_instance = Terminal:new {
+      direction = 'float',
+      id = 1,
+      hidden = true,
+      float_opts = {
+        border = 'none', -- Set border to none
+        width = vim.o.columns,
+        height = function()
+          return math.max(1, math.floor(vim.o.lines * 0.30))
+        end,
+        row = function()
+          local term_height = math.max(1, math.floor(vim.o.lines * 0.30))
+          local border_height = 0 -- Set border_height to 0 since there's no border
+          return math.max(0, vim.o.lines - term_height - border_height)
+        end,
+        col = 0,
+      },
+      on_open = function()
+        vim.schedule(function()
+          vim.cmd 'startinsert!'
+          vim.cmd 'nohlsearch'
+        end)
+      end,
+    }
+  end
+  terminal_instance:toggle()
+end, {
+  desc = 'Toggle terminal (float bottom full no border)',
+  noremap = true,
+  silent = true,
+})
+
 -- Add any other future custom mappings below this line

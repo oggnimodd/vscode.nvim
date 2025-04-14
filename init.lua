@@ -1405,7 +1405,13 @@ require('lazy').setup({
       auto_scroll = true,
       shell = vim.o.shell,
       float_opts = {
-        border = 'curved',
+        border = 'none',
+        width = vim.o.columns,
+        height = function()
+          return math.max(1, vim.o.lines - 2)
+        end,
+        row = 0,
+        col = 0,
       },
     },
   },
