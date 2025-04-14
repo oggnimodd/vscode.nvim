@@ -1388,6 +1388,27 @@ require('lazy').setup({
       -- >>>>> END OF MAPPINGS <<<<<
     end, -- end config function
   },
+  {
+    'akinsho/toggleterm.nvim',
+    version = '*',
+    opts = {
+      direction = 'float',
+      open_mapping = [[<c-\>]],
+      size = function(term)
+        if term.direction == 'horizontal' then
+          return math.floor(vim.o.lines * 0.25)
+        elseif term.direction == 'vertical' then
+          return math.floor(vim.o.columns * 0.4)
+        end
+        return 15
+      end,
+      auto_scroll = true,
+      shell = vim.o.shell,
+      float_opts = {
+        border = 'curved',
+      },
+    },
+  },
 }, {
   ui = {
     -- If you are using a Nerd Font: set icons to an empty table which will use the
