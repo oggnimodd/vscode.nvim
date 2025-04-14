@@ -310,4 +310,9 @@ end, {
 -- Make ctrl + backspace work in terminal
 map('t', '<C-BS>', '<C-W>', { noremap = true, silent = true, desc = 'Delete word backward in terminal' })
 
+-- Telescope search diagnostics
+map('n', '<leader>se', function()
+  require('telescope.builtin').diagnostics()
+end, { noremap = true, silent = true, desc = '[S]earch [E]rrors (Diagnostics)' })
+
 -- Add any other future custom mappings below this line
