@@ -306,4 +306,8 @@ end, {
   noremap = true,
   silent = true,
 })
+
+-- Make ctrl + backspace work in terminal
+map('t', '<C-BS>', '<C-W>', { noremap = true, silent = true, desc = 'Delete word backward in terminal' })
+
 -- Add any other future custom mappings below this line
