@@ -713,6 +713,7 @@ require('lazy').setup({
     },
     opts = {
       notify_on_error = false,
+      log_level = vim.log.levels.DEBUG,
       format_on_save = function(bufnr)
         -- Disable "format_on_save lsp_fallback" for languages that don't
         -- have a well standardized coding style. You can add additional
@@ -729,9 +730,15 @@ require('lazy').setup({
       end,
       formatters_by_ft = {
         lua = { 'stylua' },
-        json = { 'prettierd' },
-        jsonc = { 'prettierd' },
+        json = { 'biome', 'prettierd', stop_after_first = true },
+        jsonc = { 'biome', 'prettierd', stop_after_first = true },
         svelte = { 'prettierd' },
+        javascript = { 'biome', 'prettierd', stop_after_first = true },
+        typescript = { 'biome', 'prettierd', stop_after_first = true },
+        tsx = { 'biome', 'prettierd', stop_after_first = true },
+        jsx = { 'biome', 'prettierd', stop_after_first = true },
+        html = { 'prettierd' },
+        css = { 'biome', 'prettierd', stop_after_first = true },
         -- Conform can also run multiple formatters sequentially
         -- python = { "isort", "black" },
         --
