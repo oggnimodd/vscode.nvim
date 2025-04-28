@@ -245,7 +245,7 @@ map('n', '<leader>dx', '<Cmd>RemoveAllComments<CR>', { desc = 'Remove All Commen
 -- Terminal stuff using Alt+`
 local Terminal = require('toggleterm.terminal').Terminal
 
-map({ 'n', 'i', 't' }, '<A-`>', function()
+map({ 'n', 'i', 't' }, '<c-\\>', function()
   local bottom_term_config = {
     direction = 'float',
     id = 1,
@@ -278,7 +278,7 @@ end, {
   silent = true,
 })
 
-map({ 'n', 'i', 't' }, '<c-\\>', function()
+map({ 'n', 'i', 't' }, '<A-`>', function()
   local default_float_config = {
     direction = 'float',
     id = 2,
