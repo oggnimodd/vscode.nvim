@@ -4,6 +4,9 @@
 vim.g.mapleader = ' '
 vim.g.maplocalleader = ' '
 
+-- SSH Spesifc config
+vim.g.clipboard = 'osc52'
+
 -- Set to true if you have a Nerd Font installed and selected in the terminal
 vim.g.have_nerd_font = true
 
@@ -626,9 +629,6 @@ require('lazy').setup({
         -- Some languages (like typescript) have entire language plugins that can be useful:
         --    https://github.com/pmizio/typescript-tools.nvim
         --
-        -- But for many setups, the LSP (`ts_ls`) will work just fine
-        -- ts_ls = {},
-        --
         pyright = {
           settings = {
             pyright = {
@@ -679,6 +679,29 @@ require('lazy').setup({
         'stylua', -- Used to format Lua code
         'svelte',
       })
+
+      local vue_language_server = vim.fn.expand '$MASON/packages' .. '/vue-language-server' .. '/node_modules/@vue/language-server'
+
+      -- Setup ts language server + volar manually here
+      -- https://github.com/vuejs/language-tools#community-integration
+      local lspconfig = require 'lspconfig'
+
+      lspconfig.ts_ls.setup {
+        init_options = {
+          plugins = {
+            {
+              name = '@vue/typescript-plugin',
+              location = vue_language_server,
+              languages = { 'vue' },
+            },
+          },
+        },
+        filetypes = { 'typescript', 'javascript', 'javascriptreact', 'typescriptreact', 'vue' },
+      }
+
+      -- No need to set `hybridMode` to `true` as it's the default value
+      lspconfig.volar.setup {}
+
       require('mason-tool-installer').setup { ensure_installed = ensure_installed }
 
       require('mason-lspconfig').setup {
