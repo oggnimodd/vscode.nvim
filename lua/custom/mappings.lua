@@ -20,7 +20,13 @@ map('i', '<C-c>', '<C-o>"+yy', { desc = 'Copy Current Line to system clipboard' 
 -- Paste
 map('n', '<C-v>', '"+p', { desc = 'Paste from system clipboard after cursor' })
 map('n', 'gP', '"+P', { desc = 'Paste from system clipboard before cursor' }) -- Using "+P for before cursor
-map('i', '<C-v>', '<C-R>+', { desc = 'Paste from system clipboard' })
+map('i', '<C-v>', function()
+  local content = vim.fn.getreg '+' -- Get content from system clipboard (+) register
+  -- Pastes the content:
+  -- true: convert CRLF to LF (generally good for consistency)
+  -- -1: paste all data at once, handling it like a bracketed paste
+  vim.api.nvim_paste(content, true, -1)
+end, { desc = 'Paste from system clipboard (smart)' })
 -- Paste over selection without yanking the replaced text
 map('v', '<C-v>', '"_dP', { desc = 'Paste over selection from system clipboard' })
 
