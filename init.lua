@@ -666,6 +666,9 @@ require('lazy').setup({
 
       local lspconfig = require 'lspconfig'
 
+      -- GD script
+      -- lspconfig.gdscript.setup(capabilities)
+
       lspconfig.ts_ls.setup {
         init_options = {
           plugins = {
@@ -789,6 +792,8 @@ require('lazy').setup({
 
         -- Toml shenanigans
         toml = { 'prettierd' },
+
+        vue = { 'prettierd' },
 
         -- python = { "isort", "black" },
         --
@@ -990,6 +995,7 @@ require('lazy').setup({
         'json',
         'tsx',
         'svelte',
+        'rust',
         -- Add any other languages you frequently use
       }
       local auto_install = true

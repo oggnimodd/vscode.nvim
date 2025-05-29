@@ -44,6 +44,8 @@ return {
           'target', -- For Rust projects
           '.DS_Store', -- macOS specific
           'thumbs.db', -- Windows specific
+          '.nuxt',
+          '.next',
         },
         hide_by_pattern = {
           -- Example: Hide lua cache files
