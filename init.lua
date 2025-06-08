@@ -770,6 +770,7 @@ require('lazy').setup({
         json = { 'biome', 'prettierd', stop_after_first = true },
         jsonc = { 'biome', 'prettierd', stop_after_first = true },
         svelte = { 'prettierd' },
+        vue = { 'prettierd' },
         javascript = { 'biome', 'prettierd', stop_after_first = true },
         typescript = { 'biome', 'prettierd', stop_after_first = true },
         tsx = { 'biome', 'prettierd', stop_after_first = true },
