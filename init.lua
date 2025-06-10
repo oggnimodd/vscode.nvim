@@ -662,28 +662,11 @@ require('lazy').setup({
         },
         svelte = {},
       }
-      local vue_language_server_path = vim.fn.expand '$MASON/packages' .. '/vue-language-server' .. '/node_modules/@vue/language-server'
 
-      local lspconfig = require 'lspconfig'
+      local vue_language_server_path = vim.fn.expand '$MASON/packages' .. '/vue-language-server' .. '/node_modules/@vue/language-server'
 
       -- GD script
       -- lspconfig.gdscript.setup(capabilities)
-
-      lspconfig.ts_ls.setup {
-        init_options = {
-          plugins = {
-            {
-              name = '@vue/typescript-plugin',
-              location = vue_language_server_path,
-              languages = { 'vue' },
-            },
-          },
-        },
-        filetypes = { 'typescript', 'javascript', 'javascriptreact', 'typescriptreact', 'vue' },
-      }
-
-      -- No need to set `hybridMode` to `true` as it's the default value
-      lspconfig.volar.setup {}
 
       -- Ensure the servers and tools above are installed
       --
@@ -706,32 +689,53 @@ require('lazy').setup({
       require('mason-tool-installer').setup { ensure_installed = ensure_installed }
 
       require('mason-lspconfig').setup {
-        ensure_installed = {}, -- explicitly set to an empty table (Kickstart populates installs via mason-tool-installer)
+        ensure_installed = {},
         automatic_installation = false,
         handlers = {
           function(server_name)
             local server = servers[server_name] or {}
-            -- This handles overriding only values explicitly passed
-            -- by the server configuration above. Useful when disabling
-            -- certain features of an LSP (for example, turning off formatting for ts_ls)
             server.capabilities = vim.tbl_deep_extend('force', {}, capabilities, server.capabilities or {})
-            -- <<< --- START OF ADDED/MODIFIED CODE --- >>>
+
             -- SPECIFIC FIX FOR SVELTE ON LINUX (Neovim 0.10.x)
             if server_name == 'svelte' then
-              -- Force Svelte LS to use its internal file watcher (chokidar)
-              -- by telling it Neovim doesn't support dynamic watched file registration.
               server.capabilities = vim.tbl_deep_extend('force', server.capabilities, {
                 workspace = {
                   didChangeWatchedFiles = false,
                 },
               })
-              vim.notify('Applied Svelte Linux watcher capability override', vim.log.levels.INFO) -- Optional notification
+              vim.notify('Applied Svelte Linux watcher capability override', vim.log.levels.INFO)
             end
-            -- <<< --- END OF ADDED/MODIFIED CODE --- >>>
+
+            -- Use the standard lspconfig setup for all servers first
             require('lspconfig')[server_name].setup(server)
           end,
         },
       }
+
+      -- AFTER the mason-lspconfig setup, configure the special cases with vim.lsp.config
+      -- This is for Neovim 0.11+ hybrid TypeScript + Vue setup
+
+      -- Configure ts_ls with Vue support
+      local vue_language_server_path = vim.fn.expand '$MASON/packages' .. '/vue-language-server' .. '/node_modules/@vue/language-server'
+
+      vim.lsp.config('ts_ls', {
+        init_options = {
+          plugins = {
+            {
+              name = '@vue/typescript-plugin',
+              location = vue_language_server_path,
+              languages = { 'vue' },
+            },
+          },
+        },
+        filetypes = { 'typescript', 'javascript', 'javascriptreact', 'typescriptreact', 'vue' },
+        capabilities = capabilities,
+      })
+
+      -- Configure vue_ls
+      vim.lsp.config('vue_ls', {
+        capabilities = capabilities,
+      })
     end,
   },
 
