@@ -1,0 +1,11 @@
+{
+	"name": "useful-snippets",
+	"contributes": {
+		"snippets": [
+			{
+				"language": "vue",
+				"path": "./vue.json"
+			}
+		]
+	}
+}

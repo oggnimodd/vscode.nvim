@@ -661,6 +661,43 @@ require('lazy').setup({
           },
         },
         svelte = {},
+        gopls = {
+          settings = {
+            gopls = {
+              gofumpt = true,
+              codelenses = {
+                gc_details = false,
+                generate = true,
+                regenerate_cgo = true,
+                run_govulncheck = true,
+                test = true,
+                tidy = true,
+                upgrade_dependency = true,
+                vendor = true,
+              },
+              hints = {
+                assignVariableTypes = true,
+                compositeLiteralFields = true,
+                compositeLiteralTypes = true,
+                constantValues = true,
+                functionTypeParameters = true,
+                parameterNames = true,
+                rangeVariableTypes = true,
+              },
+              analyses = {
+                nilness = true,
+                unusedparams = true,
+                unusedwrite = true,
+                useany = true,
+              },
+              usePlaceholders = true,
+              completeUnimported = true,
+              staticcheck = true,
+              directoryFilters = { '-.git', '-.vscode', '-.idea', '-.vscode-test', '-node_modules' },
+              semanticTokens = true,
+            },
+          },
+        },
       }
 
       local vue_language_server_path = vim.fn.expand '$MASON/packages' .. '/vue-language-server' .. '/node_modules/@vue/language-server'
@@ -685,6 +722,8 @@ require('lazy').setup({
       vim.list_extend(ensure_installed, {
         'stylua', -- Used to format Lua code
         'svelte',
+        'goimports',
+        'gofumpt',
       })
       require('mason-tool-installer').setup { ensure_installed = ensure_installed }
 
@@ -849,6 +888,7 @@ require('lazy').setup({
       local cmp = require 'cmp'
       local luasnip = require 'luasnip'
       luasnip.config.setup {} -- Basic setup for luasnip
+      require('luasnip.loaders.from_vscode').lazy_load { paths = { vim.fn.stdpath 'config' .. '/lua/snippets' } }
 
       cmp.setup {
         snippet = {
@@ -899,7 +939,8 @@ require('lazy').setup({
           { name = 'lazydev', group_index = 0 },
           { name = 'nvim_lsp' },
           { name = 'luasnip' },
-          { name = 'path' },
+          -- Uncomment this if you awnt to use the path source
+          -- { name = 'path' },
           { name = 'nvim_lsp_signature_help' },
           -- Consider adding { name = 'supermaven' } if it offers a cmp source
         },
@@ -1000,6 +1041,10 @@ require('lazy').setup({
         'tsx',
         'svelte',
         'rust',
+        'go',
+        'gomod',
+        'gowork',
+        'gosum',
         -- Add any other languages you frequently use
       }
       local auto_install = true

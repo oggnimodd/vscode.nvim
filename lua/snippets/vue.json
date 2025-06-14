@@ -1,0 +1,17 @@
+{
+	"Vue Template (vst)": {
+		"prefix": "vst",
+		"body": ["<template>", "\t<div>", "\t\t$0", "\t</div>", "</template>"],
+		"description": "Basic Vue template with a div"
+	},
+	"Vue Script Setup (vsc)": {
+		"prefix": "vsc",
+		"body": ["<script setup lang=\"ts\">", "\t$0", "</script>"],
+		"description": "Vue script setup with TypeScript"
+	},
+	"Vue Style Scoped (vss)": {
+		"prefix": "vss",
+		"body": ["<style scoped>", "\t$0", "</style>"],
+		"description": "Vue style scoped"
+	}
+}
