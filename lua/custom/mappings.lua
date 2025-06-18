@@ -12,8 +12,6 @@ map({ 'n', 'i', 'v', 'c' }, '<C-q>', '<Cmd>qa!<CR>', { desc = 'Quit All without 
 -- Ensure 'vim.opt.clipboard = "unnamedplus"' is set in init.lua or similar config
 -- [[ Clipboard Operations (Copy/Paste/Cut) ]]
 
--- Copy
-map('v', '<C-c>', '"+y', { desc = 'Copy Selection to system clipboard' })
 map('n', '<C-c>', '"+yy', { desc = 'Copy Current Line to system clipboard' })
 map('i', '<C-c>', '<C-o>"+yy', { desc = 'Copy Current Line to system clipboard' })
 
@@ -327,5 +325,10 @@ map('n', '<leader>e', vim.diagnostic.open_float, { noremap = true, silent = true
 -- Diagnostic Navigation
 map('n', ']d', vim.diagnostic.goto_next, { noremap = true, silent = true, desc = 'Go to Next Diagnostic' })
 map('n', '[d', vim.diagnostic.goto_prev, { noremap = true, silent = true, desc = 'Go to Previous Diagnostic' })
+
+-- Search Buffer
+map('n', '<leader>sb', function()
+  require('telescope.builtin').current_buffer_fuzzy_find()
+end, { noremap = true, silent = true, desc = 'Live Grep Current File' })
 
 -- Add any other future custom mappings below this line
