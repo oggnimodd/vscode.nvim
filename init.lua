@@ -1156,9 +1156,15 @@ require('lazy').setup({
         highlight = highlight,
         indent = indent,
         textobjects = textobjects, -- Pass your detailed textobjects config here
-        -- Add other top-level Treesitter options here if needed
-        -- e.g., incremental_selection, matchup, etc.
-        -- incremental_selection = { enable = true, keymaps = { ... } },
+        incremental_selection = {
+          enable = true,
+          keymaps = {
+            init_selection = 'gnn', -- Start selection
+            node_incremental = 'gnp', -- Expand selection (gn + plus/positive)
+            scope_incremental = 'gns', -- Expand to next scope
+            node_decremental = 'gnm', -- Shrink selection (gn + minus)
+          },
+        },
       }
 
       -- Setup repeatable moves AFTER the main setup
