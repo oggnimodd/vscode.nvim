@@ -13,6 +13,7 @@ map({ 'n', 'i', 'v', 'c' }, '<C-q>', '<Cmd>qa!<CR>', { desc = 'Quit All without 
 -- [[ Clipboard Operations (Copy/Paste/Cut) ]]
 
 map('n', '<C-c>', '"+yy', { desc = 'Copy Current Line to system clipboard' })
+map('v', '<C-c>', '"+y', { desc = 'Copy Selection to system clipboard' }) -- ADDED THIS LINE
 map('i', '<C-c>', '<C-o>"+yy', { desc = 'Copy Current Line to system clipboard' })
 
 -- Paste
