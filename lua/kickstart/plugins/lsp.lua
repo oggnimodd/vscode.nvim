@@ -15,7 +15,6 @@ return {
           mode = mode or 'n'
           vim.keymap.set(mode, keys, func, { buffer = event.buf, desc = 'LSP: ' .. desc })
         end
-
         map('gd', vim.lsp.buf.definition, '[G]oto [D]efinition')
         map('gr', require('telescope.builtin').lsp_references, '[G]oto [R]eferences')
         map('gI', require('telescope.builtin').lsp_implementations, '[G]oto [I]mplementation')
@@ -25,7 +24,6 @@ return {
         map('<leader>rn', vim.lsp.buf.rename, '[R]e[n]ame')
         map('<leader>ca', vim.lsp.buf.code_action, '[C]ode [A]ction', { 'n', 'x' })
         map('gD', vim.lsp.buf.declaration, '[G]oto [D]eclaration')
-
         local function client_supports_method(client, method, bufnr)
           if vim.fn.has 'nvim-0.11' == 1 then
             return client:supports_method(method, bufnr)
@@ -33,7 +31,6 @@ return {
             return client.supports_method(method, { bufnr = bufnr })
           end
         end
-
         local client = vim.lsp.get_client_by_id(event.data.client_id)
         if client and client_supports_method(client, vim.lsp.protocol.Methods.textDocument_documentHighlight, event.buf) then
           local highlight_augroup = vim.api.nvim_create_augroup('kickstart-lsp-highlight', { clear = false })
@@ -91,6 +88,7 @@ return {
           return diagnostic_message[diagnostic.severity]
         end,
       },
+      virtual_text = { source = 'if_many', spacing = 2 },
     }
 
     local capabilities = vim.lsp.protocol.make_client_capabilities()
@@ -159,14 +157,14 @@ return {
       },
     }
 
-    local vue_language_server_path = vim.fn.expand '$MASON/packages' .. '/vue-language-server' .. '/node_modules/@vue/language-server'
-
     local ensure_installed = vim.tbl_keys(servers or {})
     vim.list_extend(ensure_installed, {
       'stylua',
       'svelte',
       'goimports',
       'gofumpt',
+      'vtsls',
+      'vue-language-server',
     })
     require('mason-tool-installer').setup { ensure_installed = ensure_installed }
 
@@ -175,9 +173,11 @@ return {
       automatic_installation = false,
       handlers = {
         function(server_name)
+          if server_name == 'vue_ls' or server_name == 'vtsls' then
+            return
+          end
           local server = servers[server_name] or {}
           server.capabilities = vim.tbl_deep_extend('force', {}, capabilities, server.capabilities or {})
-
           if server_name == 'svelte' then
             server.capabilities = vim.tbl_deep_extend('force', server.capabilities, {
               workspace = {
@@ -186,30 +186,56 @@ return {
             })
             vim.notify('Applied Svelte Linux watcher capability override', vim.log.levels.INFO)
           end
-
           require('lspconfig')[server_name].setup(server)
         end,
       },
     }
 
     local vue_language_server_path = vim.fn.expand '$MASON/packages' .. '/vue-language-server' .. '/node_modules/@vue/language-server'
-
-    vim.lsp.config('ts_ls', {
-      init_options = {
-        plugins = {
-          {
-            name = '@vue/typescript-plugin',
-            location = vue_language_server_path,
-            languages = { 'vue' },
+    local vue_plugin = {
+      name = '@vue/typescript-plugin',
+      location = vue_language_server_path,
+      languages = { 'vue' },
+      configNamespace = 'typescript',
+    }
+    local vtsls_config = {
+      settings = {
+        vtsls = {
+          tsserver = {
+            globalPlugins = {
+              vue_plugin,
+            },
           },
         },
       },
       filetypes = { 'typescript', 'javascript', 'javascriptreact', 'typescriptreact', 'vue' },
       capabilities = capabilities,
-    })
-
-    vim.lsp.config('vue_ls', {
+    }
+    local vue_ls_config = {
+      on_init = function(client)
+        client.handlers['tsserver/request'] = function(_, result, context)
+          local clients = vim.lsp.get_clients { bufnr = context.bufnr, name = 'vtsls' }
+          if #clients == 0 then
+            return
+          end
+          local ts_client = clients[1]
+          local param = unpack(result)
+          local id, command, payload = unpack(param)
+          ts_client:exec_cmd({
+            title = 'vue_request_forward',
+            command = 'typescript.tsserverRequest',
+            arguments = { command, payload },
+          }, { bufnr = context.bufnr }, function(_, r)
+            local response_data = { { id, r.body } }
+            client:notify('tsserver/response', response_data)
+          end)
+        end
+      end,
       capabilities = capabilities,
-    })
+    }
+
+    vim.lsp.config('vtsls', vtsls_config)
+    vim.lsp.config('vue_ls', vue_ls_config)
+    vim.lsp.enable { 'vtsls', 'vue_ls' }
   end,
 }
