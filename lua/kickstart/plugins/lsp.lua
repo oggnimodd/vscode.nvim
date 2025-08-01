@@ -166,6 +166,7 @@ return {
       'vtsls',
       'vue-language-server',
       'json-lsp',
+      'rust-analyzer',
     })
     require('mason-tool-installer').setup { ensure_installed = ensure_installed }
 
@@ -237,6 +238,19 @@ return {
       end,
       capabilities = capabilities,
     }
+
+    local rust_analyzer_config = {
+      settings = {
+        ['rust-analyzer'] = {
+          checkOnSave = {
+            enable = false,
+          },
+        },
+      },
+      capabilities = capabilities,
+    }
+
+    vim.lsp.config('rust_analyzer', rust_analyzer_config)
 
     vim.lsp.config('vtsls', vtsls_config)
     vim.lsp.config('vue_ls', vue_ls_config)

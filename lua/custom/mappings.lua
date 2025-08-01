@@ -332,4 +332,30 @@ map('n', '<leader>sb', function()
   require('telescope.builtin').current_buffer_fuzzy_find()
 end, { noremap = true, silent = true, desc = 'Live Grep Current File' })
 
+-- Rust analyzer manual check
+map('n', '<leader>rc', function()
+  -- Step 1: Save all modified buffers. This is crucial for rust-analyzer.
+  vim.cmd 'wa'
+
+  -- Step 2: Get the active rust-analyzer client for the current buffer.
+  local clients = vim.lsp.get_clients { bufnr = 0, name = 'rust_analyzer' }
+  if #clients == 0 then
+    vim.notify('rust-analyzer is not active for this buffer.', vim.log.levels.WARN, { title = 'LSP' })
+    return
+  end
+
+  -- Step 3: Send the NOTIFICATION to the server. This is the key change.
+  for _, client in ipairs(clients) do
+    local params = vim.lsp.util.make_text_document_params()
+    client.notify('rust-analyzer/runFlycheck', params)
+  end
+
+  -- Step 4: Provide user feedback that the command was sent.
+  vim.notify('rust-analyzer: check triggered.', vim.log.levels.INFO, { title = 'LSP' })
+end, {
+  noremap = true,
+  silent = true,
+  desc = '[R]ust [C]heck Project (rust-analyzer)',
+})
+
 -- Add any other future custom mappings below this line
