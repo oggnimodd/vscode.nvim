@@ -94,6 +94,9 @@ map('n', '<C-a>', 'ggVG', { desc = 'Select All' })
 map('i', '<C-a>', '<C-O>ggVG', { desc = 'Select All' })
 map('v', '<C-a>', '<Esc>ggVG', { desc = 'Select All' })
 
+-- Select entire line with 'vv' (like Shift+V)
+map({ 'n', 'v' }, 'vv', 'V', { desc = 'Select entire line (like V)' })
+
 -- Word Jumps (Ctrl + Left/Right) - Using standard vim motions via <C-o> in insert
 map('i', '<C-Right>', '<C-o>w', { desc = 'Jump word right' })
 map('i', '<C-Left>', '<C-o>b', { desc = 'Jump word left' })
