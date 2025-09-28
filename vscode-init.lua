@@ -86,3 +86,46 @@ end, { desc = 'VSCode Indent Selection' })
 map('v', '<S-Tab>', function()
   vscode.action 'editor.action.outdentLines'
 end, { desc = 'VSCode Outdent Selection' })
+
+-- Go to Start/End of Line (Alt+H, Alt+L)
+-- These mappings are triggered by the passthrough rules in keybindings.json
+-- We map them to Neovim's native motions to preserve composition (e.g., d$, c^).
+map({ 'n', 'v' }, '<A-h>', '^', { desc = 'Go/Select to First Non-Blank' })
+map({ 'n', 'v' }, '<A-l>', '$', { desc = 'Go/Select to End of Line' })
+
+-- =================================================================
+-- LSP & Diagnostics Mappings
+-- =================================================================
+
+-- Show Hover Information (<leader>k)
+-- This tells Neovim to ask VS Code to show its hover/LSP information.
+map('n', '<leader>k', function()
+  vscode.action 'editor.action.showHover'
+end, { desc = 'VSCode Show Hover Info' })
+
+-- Navigate Diagnostics (]d and [d)
+-- These tell Neovim to ask VS Code to jump to the next/previous problem.
+map('n', ']d', function()
+  vscode.action 'editor.action.marker.next'
+end, { desc = 'Go to Next Diagnostic (Current File)' })
+
+map('n', '[d', function()
+  vscode.action 'editor.action.marker.prev'
+end, { desc = 'Go to Previous Diagnostic (Current File)' })
+
+-- =================================================================
+-- Clipboard Mappings (FINAL VERSION)
+-- =================================================================
+
+-- In NORMAL mode, map Ctrl+C to yank the current line.
+map('n', '<C-c>', 'yy', { desc = 'Copy Line to System Clipboard' })
+
+-- In VISUAL mode, use a Lua function to yank AND escape.
+map('v', '<C-c>', function()
+  vim.cmd 'normal! y'
+  vim.cmd 'normal! <Esc>'
+end, { desc = 'Copy Selection and Exit Visual Mode' })
+
+-- Paste mappings remain the same.
+map('n', '<C-v>', 'p', { desc = 'Paste from System Clipboard' })
+map('v', '<C-v>', 'p', { desc = 'Paste over Selection from System Clipboard' })
