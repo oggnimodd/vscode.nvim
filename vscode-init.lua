@@ -94,6 +94,16 @@ map('n', '[d', function()
   vscode.action 'editor.action.marker.prev'
 end, { desc = 'Go to Previous Diagnostic (Current File)' })
 
+-- Go to Definition
+map({ 'n', 'v', 'i' }, '<F12>', function()
+  vscode.action 'editor.action.revealDefinition'
+end, { desc = 'Go to Definition' })
+
+-- Rename Symbol
+map({ 'n', 'v', 'i' }, '<F2>', function()
+  vscode.action 'editor.action.rename'
+end, { desc = 'Rename Symbol' })
+
 -- =================================================================
 -- Clipboard Mappings (SIMPLE AND CORRECT)
 -- =================================================================
