@@ -53,25 +53,6 @@ map({ 'n', 'i', 'v', 'c' }, '<C-q>', function()
   vscode.action 'workbench.action.closeActiveEditor'
 end, { desc = 'VSCode Close Editor' })
 
--- Clipboard: Copy, Cut, Paste (Ctrl+C, Ctrl+X, Ctrl+V)
--- Since we set `clipboard = 'unnamedplus'`, Neovim's standard yank (y),
--- delete (d), and put (p) commands will automatically use the system
--- clipboard. We don't need to map them to `"+y` etc.
--- This makes `yy`, `dd`, `p`, `P`, `ciw` etc. all work with the system clipboard out of the box.
-
--- Let's add your VS Code-style mappings for convenience.
--- Note: We don't need to handle insert mode separately for these,
--- because VS Code's native Ctrl+C/X/V will work there by default.
-map('n', '<C-c>', 'yy', { desc = 'Copy Line (System Clipboard)' })
-map('v', '<C-c>', 'y', { desc = 'Copy Selection (System Clipboard)' })
-
-map('n', '<C-x>', 'dd', { desc = 'Cut Line (System Clipboard)' })
-map('v', '<C-x>', 'd', { desc = 'Cut Selection (System Clipboard)' })
-
-map('n', '<C-v>', 'p', { desc = 'Paste After (System Clipboard)' })
-map('n', 'gP', 'P', { desc = 'Paste Before (System Clipboard)' })
-map('v', '<C-v>', 'p', { desc = 'Paste Over Selection (System Clipboard)' })
-
 -- Indentation: Tab and Shift+Tab
 -- In Normal and Visual mode, we want Tab/S-Tab to trigger VS Code's indent commands.
 map('n', '<Tab>', function()
@@ -114,18 +95,19 @@ map('n', '[d', function()
 end, { desc = 'Go to Previous Diagnostic (Current File)' })
 
 -- =================================================================
--- Clipboard Mappings (FINAL VERSION)
+-- Clipboard Mappings (SIMPLE AND CORRECT)
 -- =================================================================
 
 -- In NORMAL mode, map Ctrl+C to yank the current line.
 map('n', '<C-c>', 'yy', { desc = 'Copy Line to System Clipboard' })
 
--- In VISUAL mode, use a Lua function to yank AND escape.
-map('v', '<C-c>', function()
-  vim.cmd 'normal! y'
-  vim.cmd 'normal! <Esc>'
-end, { desc = 'Copy Selection and Exit Visual Mode' })
+-- In VISUAL mode, map Ctrl+C to a simple yank and escape macro.
+map('v', '<C-c>', 'y<Esc>', { desc = 'Copy Selection and Exit Visual Mode' })
 
--- Paste mappings remain the same.
+-- Paste mappings.
 map('n', '<C-v>', 'p', { desc = 'Paste from System Clipboard' })
 map('v', '<C-v>', 'p', { desc = 'Paste over Selection from System Clipboard' })
+
+-- Cut mappings.
+map('n', '<C-x>', 'dd', { desc = 'Cut Line to System Clipboard' })
+map('v', '<C-x>', 'd', { desc = 'Cut Selection to System Clipboard' })
