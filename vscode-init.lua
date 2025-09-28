@@ -45,20 +45,7 @@ vim.keymap.set('v', 'k', 'gk', { noremap = true, silent = true })
 local map = vim.keymap.set
 
 -- Save File: Ctrl+S
--- This tells Neovim to ask VS Code to save the file.
-map({ 'n', 'v', 'i' }, '<C-s>', function()
-  -- Use vscode.call to make the save action SYNCHRONOUS.
-  -- The script will pause here until the save is complete.
-  -- The third argument is a timeout; -1 means wait indefinitely.
-  vscode.call('workbench.action.files.save', {}, -1)
-
-  -- Now that the save is 100% done, check if we were in insert mode.
-  if vim.api.nvim_get_mode().mode:find 'i' then
-    -- If so, send the <Esc> key. The editor is now in a stable
-    -- state and will correctly process the mode change.
-    vim.api.nvim_feedkeys(vim.api.nvim_replace_termcodes('<Esc>', true, false, true), 'n', false)
-  end
-end, { desc = 'VSCode Save File & Exit Insert' })
+-- See the vscode keybindings.json
 
 -- Quit Editor/Tab: Ctrl+Q
 -- This tells Neovim to ask VS Code to close the current editor tab.
