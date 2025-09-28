@@ -480,6 +480,12 @@ require('lazy').setup({
 
         vue = { 'prettierd' },
 
+        -- bash
+        sh = { 'shfmt' },
+
+        -- flutter
+        -- dart = { 'dart_format' },
+
         -- python = { "isort", "black" },
         --
         -- You can use 'stop_after_first' to run the first available formatter from the list
@@ -594,6 +600,9 @@ require('lazy').setup({
 
   -- Flash Plugin
   require 'kickstart.plugins.flash',
+
+  -- Flutter Plugin
+  require 'kickstart.plugins.flutter',
 
   { -- You can easily change to a different colorscheme.
     -- Change the name of the colorscheme plugin below, and then

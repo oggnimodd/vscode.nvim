@@ -361,4 +361,10 @@ end, {
   desc = '[R]ust [C]heck Project (rust-analyzer)',
 })
 
+-- Flutter
+map('n', '<leader>fr', '<Cmd>FlutterReload<CR>', { desc = '[F]lutter [R]eload' })
+map('n', '<leader>fq', '<Cmd>FlutterQuit<CR>', { desc = '[F]lutter [Q]uit' })
+map('n', '<leader>fl', '<Cmd>FlutterLogToggle<CR>', { desc = '[F]lutter [L]og Toggle' })
+map('n', '<leader>fx', '<Cmd>FlutterRun -d web-server --web-port 4002<CR>', { desc = '[F]lutter Run Web Server' })
+
 -- Add any other future custom mappings below this line

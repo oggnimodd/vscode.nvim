@@ -167,6 +167,7 @@ return {
       'vue-language-server',
       'json-lsp',
       'rust-analyzer',
+      'shfmt',
     })
     require('mason-tool-installer').setup { ensure_installed = ensure_installed }
 
