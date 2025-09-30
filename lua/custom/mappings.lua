@@ -375,3 +375,12 @@ vim.keymap.set('n', '<leader>dc', '<Cmd>CopyDiagnostics<CR>', {
 })
 
 -- Add any other future custom mappings below this line
+
+-- Copy entire file content to clipboard
+require 'custom.copy-file-content'
+
+vim.keymap.set('n', '<C-S-a>', '<Cmd>CopyFileContent<CR>', {
+  noremap = true,
+  silent = true,
+  desc = 'Copy entire file to clipboard',
+})
