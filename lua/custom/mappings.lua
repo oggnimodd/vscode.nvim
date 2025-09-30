@@ -247,7 +247,7 @@ vim.keymap.set('n', 'k', 'gk', { noremap = true, silent = true, desc = 'Move up 
 vim.keymap.set('v', 'j', 'gj', { noremap = true, silent = true, desc = 'Move selection down visual line' })
 vim.keymap.set('v', 'k', 'gk', { noremap = true, silent = true, desc = 'Move selection up visual line' })
 
-map('n', '<leader>dc', '<Cmd>RemoveTrailingComments<CR>', { desc = 'Remove Trailing Comments' })
+-- map('n', '<leader>dc', '<Cmd>RemoveTrailingComments<CR>', { desc = 'Remove Trailing Comments' })
 map('n', '<leader>dx', '<Cmd>RemoveAllComments<CR>', { desc = 'Remove All Comments' })
 
 -- Terminal stuff using Alt+`
@@ -366,5 +366,12 @@ map('n', '<leader>fr', '<Cmd>FlutterReload<CR>', { desc = '[F]lutter [R]eload' }
 map('n', '<leader>fq', '<Cmd>FlutterQuit<CR>', { desc = '[F]lutter [Q]uit' })
 map('n', '<leader>fl', '<Cmd>FlutterLogToggle<CR>', { desc = '[F]lutter [L]og Toggle' })
 map('n', '<leader>fx', '<Cmd>FlutterRun -d web-server --web-port 4002<CR>', { desc = '[F]lutter Run Web Server' })
+
+-- Copy diagnostic message to clipboard
+vim.keymap.set('n', '<leader>dc', '<Cmd>CopyDiagnostics<CR>', {
+  noremap = true,
+  silent = true,
+  desc = 'Copy file diagnostics to clipboard',
+})
 
 -- Add any other future custom mappings below this line
