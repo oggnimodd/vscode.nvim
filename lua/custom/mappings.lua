@@ -384,3 +384,12 @@ vim.keymap.set('n', '<C-S-a>', '<Cmd>CopyFileContent<CR>', {
   silent = true,
   desc = 'Copy entire file to clipboard',
 })
+
+-- Paste clipboard content to replace entire file
+require 'custom.paste-file-content'
+
+vim.keymap.set('n', '<S-a>', '<Cmd>PasteFileContent<CR>', {
+  noremap = true,
+  silent = true,
+  desc = 'Replace entire file with clipboard content',
+})
