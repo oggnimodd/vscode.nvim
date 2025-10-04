@@ -5,7 +5,7 @@
 -- without moving the cursor and preserving the file format.
 local function paste_entire_file_content()
   -- Get content from system clipboard register (+)
-  local content = vim.fn.getreg('+')
+  local content = vim.fn.getreg '+'
 
   -- Check if clipboard is empty
   if content == '' then
@@ -39,5 +39,6 @@ vim.api.nvim_create_user_command('PasteFileContent', paste_entire_file_content, 
 
 -- Return the function so it can be called from other modules
 return {
-  paste_entire_file_content = paste_entire_file_content
+  paste_entire_file_content = paste_entire_file_content,
 }
+
