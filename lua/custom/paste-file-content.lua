@@ -28,7 +28,7 @@ local function paste_entire_file_content()
   vim.api.nvim_buf_set_lines(buf, 0, -1, false, lines)
 
   -- Mark buffer as modified
-  vim.api.nvim_buf_set_option(buf, 'modified', true)
+  vim.api.nvim_set_option_value('modified', true, { buf = buf })
 
   vim.api.nvim_echo({ { 'Native: Pasted clipboard content to file.', 'MoreMsg' } }, false, {})
   return true
