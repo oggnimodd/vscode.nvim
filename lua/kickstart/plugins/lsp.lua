@@ -108,6 +108,28 @@ return {
         },
       },
 
+      -- php
+      intelephense = {
+        settings = {
+          intelephense = {
+            stubs = {
+              'apache',
+              'bcmath',
+              'core',
+              'curl',
+              'date',
+              'json',
+              'mysqli',
+              'openssl',
+              'pcre',
+              'standard',
+              'zlib',
+              'wordpress',
+            },
+          },
+        },
+      },
+
       lua_ls = {
         settings = {
           Lua = {
