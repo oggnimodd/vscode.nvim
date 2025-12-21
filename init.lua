@@ -669,8 +669,8 @@ require('lazy').setup({
   },
   { -- Highlight, edit, and navigate code
     'nvim-treesitter/nvim-treesitter',
+    branch = 'master',  -- Use master branch (stable, has old API)
     build = ':TSUpdate',
-    main = 'nvim-treesitter.configs', -- Sets main module to use for opts
     -- [[ Configure Treesitter ]] See `:help nvim-treesitter`
     dependencies = {
       'nvim-treesitter/nvim-treesitter-textobjects',
@@ -805,7 +805,7 @@ require('lazy').setup({
         -- lsp_interop = { enable = true, ... }
       }
 
-      -- Call the main Treesitter setup function
+      -- Call the main Treesitter setup function (old API on master branch)
       require('nvim-treesitter.configs').setup {
         ensure_installed = ensure_installed,
         auto_install = auto_install,
@@ -892,12 +892,8 @@ require('lazy').setup({
   },
   { -- Autoclose and autorename HTML/XML/JSX tags
     'windwp/nvim-ts-autotag',
-    config = function()
-      require('nvim-ts-autotag').setup {
-        -- defaults:
-        -- filetypes = { "html", "javascript", "typescript", "javascriptreact", "typescriptreact", "svelte", "vue", "tsx", "jsx", "rescript", "xml", "php", "markdown", "astro", "glimmer", "handlebars", "hbs" }
-      }
-    end,
+    event = { 'BufReadPre', 'BufNewFile' },
+    opts = {},
   },
   {
     'romgrk/barbar.nvim',
@@ -935,7 +931,14 @@ require('lazy').setup({
   },
   {
     'numToStr/Comment.nvim',
-    dependencies = { 'JoosepAlviste/nvim-ts-context-commentstring' },
+    dependencies = {
+      {
+        'JoosepAlviste/nvim-ts-context-commentstring',
+        opts = {
+          enable_autocmd = false,
+        },
+      },
+    },
     config = function()
       local U = require 'Comment.utils'
       local A = vim.api
