@@ -393,3 +393,6 @@ vim.keymap.set('n', '<S-a>', '<Cmd>PasteFileContent<CR>', {
   silent = true,
   desc = 'Replace entire file with clipboard content',
 })
+
+-- Fix for Alt+Backspace (or Ctrl+Backspace on some terminals) exiting insert mode
+map('i', '<A-BS>', '<C-w>', { desc = 'Delete word backwards' })
