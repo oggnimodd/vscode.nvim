@@ -108,7 +108,41 @@ return {
         },
       },
 
-      psalm = {},
+      intelephense = {
+        settings = {
+          intelephense = {
+            diagnostics = {
+              unusedSymbols = false,
+            },
+            environment = {
+              includePaths = {
+                '/home/orenji/coding/wordpress/_core',
+              },
+            },
+            stubs = {
+              'wordpress',
+              'superglobals',
+              'Core',
+              'standard',
+              'pcre',
+              'json',
+              'date',
+              'mbstring',
+              'exif',
+              'gd',
+              'imagick',
+              'mysqli',
+              'curl',
+              'openssl',
+              'xml',
+              'dom',
+              'zip',
+              'ctype',
+              'iconv',
+            },
+          },
+        },
+      },
 
       lua_ls = {
         settings = {
