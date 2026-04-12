@@ -2,33 +2,7 @@
 
 local M = {}
 
--- Attempt to load the required modules
-local ts_utils_ok, ts_utils = pcall(require, 'nvim-treesitter.ts_utils')
-local parsers_ok, parsers = pcall(require, 'nvim-treesitter.parsers')
 local api = vim.api
-
--- Check if modules loaded and the ESSENTIAL function exists
--- We ONLY check for get_node_at_cursor now, as get_named_node_at_cursor is missing for you
-if not ts_utils_ok or not parsers_ok or not ts_utils or not ts_utils.get_node_at_cursor then
-  local msg = 'ERROR: Tag Wrapper failed to load dependencies.\n'
-  if not ts_utils_ok then
-    msg = msg .. "- Could not load 'nvim-treesitter.ts_utils'. Is nvim-treesitter installed and updated?\n"
-  elseif not ts_utils then
-    msg = msg .. "- 'nvim-treesitter.ts_utils' loaded as nil.\n"
-  else
-    -- Only check for the one we will definitely use
-    if not ts_utils.get_node_at_cursor then
-      msg = msg .. "- Function 'get_node_at_cursor' is missing from ts_utils.\n"
-    end
-  end
-  if not parsers_ok then
-    msg = msg .. "- Could not load 'nvim-treesitter.parsers'. Is nvim-treesitter installed?\n"
-  end
-  vim.notify(msg, vim.log.levels.ERROR, { title = 'Tag Wrapper Init Error' })
-  -- Optionally print available functions for deep debugging:
-  -- if ts_utils then print("Available in ts_utils:", vim.inspect(ts_utils)) end
-  return M -- Return the empty module table so Neovim doesn't crash further
-end
 
 -- Debug helper function (optional, but useful)
 local function print_node_info(node, label)
@@ -84,21 +58,19 @@ end
 
 function M.wrap_tag_prompt()
   local bufnr = api.nvim_get_current_buf()
-  local parser = parsers.get_parser(bufnr) -- Assumes parsers loaded correctly due to check above
-  if not parser then
+  local parser_ok, parser = pcall(vim.treesitter.get_parser, bufnr)
+  if not parser_ok or not parser then
     vim.notify('No active Treesitter parser for this buffer.', vim.log.levels.WARN)
     return
   end
 
-  -- *** CHANGE HERE: Only use get_node_at_cursor ***
-  -- Use pcall here for extra safety during the actual call
-  local node_ok, current_node = pcall(ts_utils.get_node_at_cursor)
+  local node_ok, current_node = pcall(vim.treesitter.get_node, { bufnr = bufnr })
 
   if not node_ok or not current_node then
     vim.notify('No Treesitter node found at cursor.', vim.log.levels.WARN)
     -- Add more debug info if needed
     if not node_ok then
-      print 'Error calling get_node_at_cursor'
+      print 'Error calling vim.treesitter.get_node'
     end
     return
   end

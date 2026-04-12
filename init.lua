@@ -305,7 +305,6 @@ require('lazy').setup({
   { -- Fuzzy Finder (files, lsp, etc)
     'nvim-telescope/telescope.nvim',
     event = 'VimEnter',
-    branch = '0.1.x',
     dependencies = {
       'nvim-lua/plenary.nvim',
       { -- If encountering errors, see telescope-fzf-native README for installation instructions
@@ -669,11 +668,11 @@ require('lazy').setup({
   },
   { -- Highlight, edit, and navigate code
     'nvim-treesitter/nvim-treesitter',
-    branch = 'master',  -- Use master branch (stable, has old API)
+    branch = 'main',
     build = ':TSUpdate',
     -- [[ Configure Treesitter ]] See `:help nvim-treesitter`
     dependencies = {
-      'nvim-treesitter/nvim-treesitter-textobjects',
+      { 'nvim-treesitter/nvim-treesitter-textobjects', branch = 'main' },
     },
     config = function()
       -- Default Treesitter configurations options
@@ -805,26 +804,59 @@ require('lazy').setup({
         -- lsp_interop = { enable = true, ... }
       }
 
-      -- Call the main Treesitter setup function (old API on master branch)
-      require('nvim-treesitter.configs').setup {
-        ensure_installed = ensure_installed,
-        auto_install = auto_install,
-        highlight = highlight,
-        indent = indent,
-        textobjects = textobjects, -- Pass your detailed textobjects config here
-        incremental_selection = {
-          enable = true,
-          keymaps = {
-            init_selection = 'gnn', -- Start selection
-            node_incremental = 'gnp', -- Expand selection (gn + plus/positive)
-            scope_incremental = 'gns', -- Expand to next scope
-            node_decremental = 'gnm', -- Shrink selection (gn + minus)
-          },
+      require('nvim-treesitter').setup {}
+
+      vim.api.nvim_create_autocmd('FileType', {
+        group = vim.api.nvim_create_augroup('kickstart-treesitter', { clear = true }),
+        callback = function(args)
+          if pcall(vim.treesitter.start, args.buf) and vim.bo[args.buf].filetype ~= 'ruby' then
+            vim.bo[args.buf].indentexpr = "v:lua.require'nvim-treesitter'.indentexpr()"
+          end
+        end,
+      })
+
+      require('nvim-treesitter-textobjects').setup {
+        select = {
+          lookahead = textobjects.select.lookahead,
+        },
+        move = {
+          set_jumps = textobjects.move.set_jumps,
         },
       }
 
-      -- Setup repeatable moves AFTER the main setup
-      local ts_repeat_move = require 'nvim-treesitter.textobjects.repeatable_move'
+      local ts_select = require 'nvim-treesitter-textobjects.select'
+      for lhs, mapping in pairs(textobjects.select.keymaps) do
+        vim.keymap.set({ 'x', 'o' }, lhs, function()
+          ts_select.select_textobject(mapping.query, mapping.query_group or 'textobjects')
+        end, { desc = mapping.desc })
+      end
+
+      local ts_swap = require 'nvim-treesitter-textobjects.swap'
+      for lhs, query in pairs(textobjects.swap.swap_next) do
+        vim.keymap.set('n', lhs, function()
+          ts_swap.swap_next(query)
+        end)
+      end
+      for lhs, query in pairs(textobjects.swap.swap_previous) do
+        vim.keymap.set('n', lhs, function()
+          ts_swap.swap_previous(query)
+        end)
+      end
+
+      local ts_move = require 'nvim-treesitter-textobjects.move'
+      local function map_move(maps, move_fn)
+        for lhs, mapping in pairs(maps) do
+          vim.keymap.set({ 'n', 'x', 'o' }, lhs, function()
+            move_fn(mapping.query, mapping.query_group or 'textobjects')
+          end, { desc = mapping.desc })
+        end
+      end
+      map_move(textobjects.move.goto_next_start, ts_move.goto_next_start)
+      map_move(textobjects.move.goto_next_end, ts_move.goto_next_end)
+      map_move(textobjects.move.goto_previous_start, ts_move.goto_previous_start)
+      map_move(textobjects.move.goto_previous_end, ts_move.goto_previous_end)
+
+      local ts_repeat_move = require 'nvim-treesitter-textobjects.repeatable_move'
       vim.keymap.set({ 'n', 'x', 'o' }, ';', ts_repeat_move.repeat_last_move)
       vim.keymap.set({ 'n', 'x', 'o' }, ',', ts_repeat_move.repeat_last_move_opposite)
       -- vim.keymap.set({ 'n', 'x', 'o' }, 'f', ts_repeat_move.builtin_f_expr)

@@ -2,9 +2,6 @@
 
 local M = {}
 
-local ts_utils = require 'nvim-treesitter.ts_utils'
-local parsers = require 'nvim-treesitter.parsers'
-
 -- Debug helper function (using pcall for safety)
 local function print_node_info(node, label)
   if not node then
@@ -161,12 +158,15 @@ end
 -- rename_tag_prompt function (Main logic - keep previous working version)
 function M.rename_tag_prompt()
   local bufnr = vim.api.nvim_get_current_buf()
-  local parser = parsers.get_parser(bufnr)
-  if not parser then
+  local parser_ok, parser = pcall(vim.treesitter.get_parser, bufnr)
+  if not parser_ok or not parser then
     vim.notify('No active Treesitter parser...', vim.log.levels.WARN)
     return
   end
-  local current_node = ts_utils.get_node_at_cursor() or ts_utils.get_named_node_at_cursor()
+  local node_ok, current_node = pcall(vim.treesitter.get_node, { bufnr = bufnr })
+  if not node_ok then
+    current_node = nil
+  end
   if not current_node then
     vim.notify('No Treesitter node found at cursor.', vim.log.levels.WARN)
     return
