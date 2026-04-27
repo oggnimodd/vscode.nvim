@@ -347,6 +347,19 @@ require('lazy').setup({
 
       -- [[ Configure Telescope ]]
       -- See `:help telescope` and `:help telescope.setup()`
+      local find_files_with_env = function(opts)
+        local cwd = opts.cwd or vim.uv.cwd()
+        local command = { 'rg', '--files', '--color', 'never', '.' }
+
+        for _, path in ipairs(vim.fn.globpath(cwd, '.env*', false, true)) do
+          if vim.fn.filereadable(path) == 1 then
+            table.insert(command, vim.fn.fnamemodify(path, ':t'))
+          end
+        end
+
+        return command
+      end
+
       require('telescope').setup {
         -- You can put your default mappings / updates / etc. in here
         --  All the info you're looking for is in `:help telescope.setup()`
@@ -356,7 +369,11 @@ require('lazy').setup({
         --     i = { ['<c-enter>'] = 'to_fuzzy_refine' },
         --   },
         -- },
-        -- pickers = {}
+        pickers = {
+          find_files = {
+            find_command = find_files_with_env,
+          },
+        },
         extensions = {
           ['ui-select'] = {
             require('telescope.themes').get_dropdown(),
@@ -694,6 +711,7 @@ require('lazy').setup({
         'css',
         'json',
         'tsx',
+        'vue',
         'svelte',
         'rust',
         'go',
@@ -804,7 +822,24 @@ require('lazy').setup({
         -- lsp_interop = { enable = true, ... }
       }
 
-      require('nvim-treesitter').setup {}
+      local treesitter = require 'nvim-treesitter'
+      treesitter.setup {}
+
+      local installed = {}
+      for _, lang in ipairs(treesitter.get_installed()) do
+        installed[lang] = true
+      end
+
+      local missing = {}
+      for _, lang in ipairs(ensure_installed) do
+        if not installed[lang] then
+          table.insert(missing, lang)
+        end
+      end
+
+      if #missing > 0 then
+        treesitter.install(missing)
+      end
 
       vim.api.nvim_create_autocmd('FileType', {
         group = vim.api.nvim_create_augroup('kickstart-treesitter', { clear = true }),
