@@ -327,8 +327,12 @@ end, { noremap = true, silent = true, desc = '[S]earch [E]rrors (Diagnostics)' }
 map('n', '<leader>e', vim.diagnostic.open_float, { noremap = true, silent = true, desc = 'Show Line Diagnostics (Float)' })
 
 -- Diagnostic Navigation
-map('n', ']d', vim.diagnostic.goto_next, { noremap = true, silent = true, desc = 'Go to Next Diagnostic' })
-map('n', '[d', vim.diagnostic.goto_prev, { noremap = true, silent = true, desc = 'Go to Previous Diagnostic' })
+map('n', ']d', function()
+  vim.diagnostic.jump { count = 1 }
+end, { noremap = true, silent = true, desc = 'Go to Next Diagnostic' })
+map('n', '[d', function()
+  vim.diagnostic.jump { count = -1 }
+end, { noremap = true, silent = true, desc = 'Go to Previous Diagnostic' })
 
 -- Search Buffer
 map('n', '<leader>sb', function()
