@@ -154,10 +154,34 @@ local function match_score(query, candidate)
 
   local needle = string.lower(query)
   local haystack = string.lower(candidate)
+  local basename = haystack:match '[^/]+$' or haystack
+  local stem = basename:gsub('%.[^.]+$', '')
+
+  if basename == needle then
+    return 300000 - #candidate
+  end
+
+  if stem == needle then
+    return 290000 - #candidate
+  end
+
+  if vim.startswith(basename, needle) then
+    return 280000 - #candidate
+  end
+
+  local basename_start = basename:find(needle, 1, true)
+  if basename_start then
+    return 270000 - (basename_start * 100) - #candidate
+  end
+
   local start = haystack:find(needle, 1, true)
 
   if start then
     return 100000 - (start * 100) - #candidate
+  end
+
+  if #needle <= 3 then
+    return nil
   end
 
   local needle_index = 1
@@ -300,7 +324,10 @@ local function fff_search_root(home, root, excludes, query, options)
     if is_inside(root.path, absolute) then
       local relative = relative_to(root.path, absolute)
       if not is_excluded(excludes, absolute, relative) then
-        items[#items + 1] = build_item(home, root, relative, 100000 - rank)
+        local score = match_score(query, relative)
+        if score then
+          items[#items + 1] = build_item(home, root, relative, score)
+        end
       end
     end
   end
